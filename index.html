@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA GPU 23 — HBM Internals: Stacks, Channels, Packaging</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #0d1117;
+            --bg-code: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #76B900;
+            --accent-dim: #76B90044;
+            --accent-glow: #76B90033;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 .accent {
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Tag Pills ── */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+
+        /* ── Pipeline Flow Bar ── */
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .pipeline-arrow {
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slide p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .slide p strong {
+            color: var(--text-primary);
+        }
+
+        .slide ul, .slide ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .slide li {
+            margin-bottom: 0.4rem;
+        }
+
+        .slide li strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Code Blocks ── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+        }
+
+        /* Syntax highlighting (manual) */
+        .kw { color: #ff7b72; }
+        .fn { color: #d2a8ff; }
+        .str { color: #a5d6ff; }
+        .cm { color: #8b949e; font-style: italic; }
+        .num { color: #79c0ff; }
+        .type { color: #ffa657; }
+        .dir { color: #ff7b72; }
+        .mac { color: #ffa657; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background: rgba(13, 17, 23, 0.5);
+        }
+
+        /* ── Diagrams ── */
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .diagram-box.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        .diagram-box.dim {
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .diagram-arrow {
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Vertical flow diagrams */
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-vertical .diagram-arrow {
+            font-size: 1.1rem;
+        }
+
+        /* Nested hierarchy diagram */
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .hierarchy-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .hierarchy-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .hierarchy-item.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        /* Grid diagram */
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-grid.cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .diagram-grid.cols-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .diagram-panel.accent-border {
+            border-left: 3px solid var(--accent);
+        }
+
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram-panel p, .diagram-panel ul {
+            font-size: 0.85rem;
+        }
+
+        /* ── Callout Boxes ── */
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+
+        .callout p {
+            margin-bottom: 0;
+        }
+
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── Tier Visual ── */
+        .tier-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .tier-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tier-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .tier-fill {
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            white-space: nowrap;
+            transition: width 0.6s ease;
+        }
+
+        .tier-cost {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 70px;
+        }
+
+        /* ── Contents list ── */
+        .contents-list {
+            list-style: none;
+            padding-left: 0;
+            counter-reset: contents;
+        }
+
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .contents-list li:last-child {
+            border-bottom: none;
+        }
+
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+
+        .contents-list a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .contents-list a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .slide {
+                padding: 3rem 1rem;
+                min-height: auto;
+            }
+
+            .slide-number {
+                font-size: 3rem;
+                top: 1.5rem;
+                right: 1rem;
+            }
+
+            .slide h2 {
+                font-size: 1.5rem;
+            }
+
+            .diagram-grid.cols-2,
+            .diagram-grid.cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline {
+                gap: 0.15rem;
+            }
+
+            .pipeline-step {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            table {
+                font-size: 0.78rem;
+            }
+
+            .tier-label {
+                min-width: 60px;
+                font-size: 0.65rem;
+            }
+
+            .tier-fill {
+                font-size: 0.6rem;
+                height: 26px;
+            }
+        }
+
+        /* ── Interactive controls (added for Local LLM series) ── */
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .control-row label {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 180px;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            min-width: 160px;
+            accent-color: var(--accent);
+        }
+        .control-row input[type="number"],
+        .control-row select {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 4px;
+            padding: 0.3rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .control-row .val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 80px;
+            text-align: right;
+        }
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn:hover { background: rgba(118, 185, 0, 0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary {
+            background: var(--bg-code);
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .result-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+        }
+        .result-box .line-label { color: var(--text-secondary); }
+        .result-box .line-val   { color: var(--accent); font-weight: 600; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .metric {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+        .metric .metric-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .metric .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* Canvas / SVG containers */
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas,
+        .canvas-wrap svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        /* Small inline badge */
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
+        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">NVIDIA GPU Architectures Series — Presentation 23</div>
+    <h1><span class="accent">HBM</span> &mdash; Inside the Stacks That Feed the Tensor Cores</h1>
+    <p class="subtitle">Eight DRAM dies vertically stacked above a logic die, connected by 1024+ TSVs to the GPU through a silicon interposer at less than a centimetre. Walk through HBM internals &mdash; channels, banks, refresh, ECC modes, the PHY, and CoWoS packaging &mdash; that decide whether you actually see the spec sheet bandwidth.</p>
+
+    <div class="tags">
+        <span class="tag">HBM2e</span><span class="tag">HBM3</span><span class="tag">HBM3e</span>
+        <span class="tag">HBM4</span><span class="tag">TSV</span><span class="tag">Channel</span>
+        <span class="tag">Bank</span><span class="tag">Refresh</span><span class="tag">ECC</span>
+        <span class="tag">PHY</span><span class="tag">CoWoS</span><span class="tag">Interposer</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">Die</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Stack</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">TSV</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Interposer</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">PHY</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Channel</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Bank</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Cell</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <p>HBM is the most expensive component on a modern datacenter GPU and the one that most often decides whether you're compute-bound or memory-bound. Here's how it actually works &mdash; from cell to interposer.</p>
+    <ul class="contents-list">
+        <li><a href="#slide-01">Why HBM Exists &mdash; HBM vs GDDR</a></li>
+        <li><a href="#slide-02">The Stack &mdash; Anatomy of HBM3e</a></li>
+        <li><a href="#slide-03">Channels &amp; Pseudo-Channels</a></li>
+        <li><a href="#slide-04">Banks, Bank Groups, Rows, and Columns</a></li>
+        <li><a href="#slide-05">HBM Generation Numbers</a></li>
+        <li><a href="#slide-06">ECC &mdash; The Three Levels</a></li>
+        <li><a href="#slide-07">Refresh &mdash; The Tax You Always Pay</a></li>
+        <li><a href="#slide-08">The HBM PHY</a></li>
+        <li><a href="#slide-09">CoWoS Packaging &mdash; How It's Actually Built</a></li>
+        <li><a href="#slide-10">What You Actually Get vs Spec Sheet</a></li>
+        <li><a href="#slide-11">Interactive: HBM Bandwidth Estimator</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>Why HBM Exists &mdash; HBM vs GDDR</h2>
+    <p>Both approaches reach roughly the same total throughput. They differ in <em>how</em> they get there &mdash; bus width vs frequency &mdash; and that single choice ripples through power, area, capacity, and packaging cost.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>GDDR6X / GDDR7 (consumer)</h4>
+            <p>A row of <strong>8&ndash;12 discrete DRAM packages</strong> on the GPU PCB, each with its own 32-bit bus (16-bit when running PAM4 on two pseudo-channels). Frequency does the heavy lifting: GDDR6X 21&ndash;24 Gbps/pin, GDDR7 32&ndash;40 Gbps/pin in PAM3.</p>
+            <ul>
+                <li>Aggregate bus per chip: <strong>32-bit</strong></li>
+                <li>Per-card bus: <strong>192&ndash;512 bits</strong></li>
+                <li>Power: <strong>~7 pJ/bit</strong></li>
+                <li>Capacity: 16&ndash;32 GB (consumer-class)</li>
+                <li>Packaging: standard FCBGA on PCB &mdash; cheap</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>HBM2e / HBM3 / HBM3e (datacenter)</h4>
+            <p>A <strong>vertical stack of 8&ndash;12 DRAM dies</strong> sitting on a silicon interposer right next to the GPU die. Width does the heavy lifting: <strong>1024 bits per stack</strong>, frequency only ~9 Gb/s/pin on HBM3e.</p>
+            <ul>
+                <li>Aggregate bus per stack: <strong>1024-bit</strong></li>
+                <li>Per-GPU bus: <strong>5120&ndash;8192 bits</strong></li>
+                <li>Power: <strong>~3 pJ/bit</strong></li>
+                <li>Capacity: 80&ndash;192 GB (H100, B200)</li>
+                <li>Packaging: <strong>CoWoS silicon interposer</strong> &mdash; expensive</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Same throughput, different shape</div>
+        <p>An RTX 5090 (GDDR7, 512-bit, ~1.8 TB/s) and an H100 SXM5 (5 HBM3 stacks, ~3.4 TB/s) live on opposite ends of the same trade. GDDR keeps every transistor on the GPU die fed by signalling fast over a narrow bus; HBM gives up frequency and instead opens a fire-hose-wide bus across <em>centimetres</em> of silicon interposer. HBM wins on bandwidth-per-watt and bandwidth-per-volume; GDDR wins on cost-per-GB and yield.</p>
+    </div>
+
+    <div class="diagram-flow">
+        <div class="diagram-box dim">8&times; GDDR @ 32-bit</div>
+        <div class="diagram-arrow">&asymp;</div>
+        <div class="diagram-box accent">256 bits &times; 24 Gb/s = 768 GB/s</div>
+        <div class="diagram-arrow">vs</div>
+        <div class="diagram-box accent">1024 bits &times; 6.4 Gb/s = 819 GB/s</div>
+        <div class="diagram-arrow">&asymp;</div>
+        <div class="diagram-box dim">1&times; HBM3 stack</div>
+    </div>
+
+    <p>The HBM trade is paid in <strong>silicon interposer area</strong>. The 2.5D substrate carrying GPU + HBM stacks is itself a wafer-fabbed silicon die, with thousands of fine-pitch traces routed at near-on-die density. Yield falls with area, the reticle limit (~830 mm&sup2;) caps how big it can be, and supplier capacity (TSMC CoWoS) is currently the binding constraint on HBM-class GPU production.</p>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>The Stack &mdash; Anatomy of HBM3e</h2>
+    <p>One HBM3e stack at a glance: 8 (or 12) DRAM dies stacked above a single base/buffer die, total stack height roughly <strong>720 &micro;m</strong>, footprint about <strong>8 &times; 11 mm</strong>. Vertical wiring is done with <strong>through-silicon vias</strong> &mdash; tungsten or copper pillars that pass <em>through the silicon</em> of every die above the bottom.</p>
+
+    <div class="canvas-wrap">
+        <svg viewBox="0 0 720 460" width="720" height="460" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="dieGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1a2330"/>
+                    <stop offset="100%" stop-color="#0d1117"/>
+                </linearGradient>
+                <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.05"/>
+                </linearGradient>
+                <linearGradient id="interGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3a4a5a"/>
+                    <stop offset="100%" stop-color="#1f2a36"/>
+                </linearGradient>
+            </defs>
+
+            <!-- Stack label -->
+            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e Stack &mdash; Cross-Section</text>
+
+            <!-- 8 DRAM dies -->
+            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">
+                <rect x="160" y="50"  width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="68">DRAM die 7  (24 Gb)</text>
+                <text x="540" y="68" text-anchor="end">top</text>
+
+                <rect x="160" y="80"  width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="98">DRAM die 6  (24 Gb)</text>
+
+                <rect x="160" y="110" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="128">DRAM die 5  (24 Gb)</text>
+
+                <rect x="160" y="140" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="158">DRAM die 4  (24 Gb)</text>
+
+                <rect x="160" y="170" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="188">DRAM die 3  (24 Gb)</text>
+
+                <rect x="160" y="200" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="218">DRAM die 2  (24 Gb)</text>
+
+                <rect x="160" y="230" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="248">DRAM die 1  (24 Gb)</text>
+
+                <rect x="160" y="260" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <text x="170" y="278">DRAM die 0  (24 Gb)</text>
+            </g>
+
+            <!-- Base / buffer die -->
+            <rect x="160" y="290" width="400" height="34" fill="url(#baseGrad)" stroke="#76B900"/>
+            <text x="170" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#76B900">Base / buffer die  (PHY, ECC, refresh FSM, repair)</text>
+
+            <!-- Micro-bumps -->
+            <g fill="#76B900">
+                <circle cx="180" cy="332" r="3"/><circle cx="200" cy="332" r="3"/><circle cx="220" cy="332" r="3"/>
+                <circle cx="240" cy="332" r="3"/><circle cx="260" cy="332" r="3"/><circle cx="280" cy="332" r="3"/>
+                <circle cx="300" cy="332" r="3"/><circle cx="320" cy="332" r="3"/><circle cx="340" cy="332" r="3"/>
+                <circle cx="360" cy="332" r="3"/><circle cx="380" cy="332" r="3"/><circle cx="400" cy="332" r="3"/>
+                <circle cx="420" cy="332" r="3"/><circle cx="440" cy="332" r="3"/><circle cx="460" cy="332" r="3"/>
+                <circle cx="480" cy="332" r="3"/><circle cx="500" cy="332" r="3"/><circle cx="520" cy="332" r="3"/>
+                <circle cx="540" cy="332" r="3"/>
+            </g>
+            <text x="600" y="335" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">&micro;-bumps  (~55 &micro;m pitch)</text>
+
+            <!-- Silicon interposer -->
+            <rect x="40" y="345" width="640" height="40" fill="url(#interGrad)" stroke="#3a4a5a"/>
+            <text x="50" y="370" font-family="JetBrains Mono, monospace" font-size="11" fill="#e6edf3">Silicon interposer  (TSV grid + RDL routing)</text>
+
+            <!-- GPU die on the interposer (right side) -->
+            <rect x="580" y="305" width="90" height="40" fill="#1a2330" stroke="#76B900"/>
+            <text x="625" y="330" font-family="JetBrains Mono, monospace" font-size="11" fill="#76B900" text-anchor="middle">GPU die</text>
+
+            <!-- C4 bumps -->
+            <g fill="#8b949e">
+                <circle cx="80" cy="392" r="4"/><circle cx="120" cy="392" r="4"/><circle cx="160" cy="392" r="4"/>
+                <circle cx="200" cy="392" r="4"/><circle cx="240" cy="392" r="4"/><circle cx="280" cy="392" r="4"/>
+                <circle cx="320" cy="392" r="4"/><circle cx="360" cy="392" r="4"/><circle cx="400" cy="392" r="4"/>
+                <circle cx="440" cy="392" r="4"/><circle cx="480" cy="392" r="4"/><circle cx="520" cy="392" r="4"/>
+                <circle cx="560" cy="392" r="4"/><circle cx="600" cy="392" r="4"/><circle cx="640" cy="392" r="4"/>
+            </g>
+
+            <!-- Substrate -->
+            <rect x="20" y="400" width="680" height="30" fill="#0d1117" stroke="#21262d"/>
+            <text x="30" y="420" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b949e">Organic package substrate</text>
+
+            <!-- TSVs through stack -->
+            <g stroke="#76B900" stroke-width="1.2" opacity="0.65">
+                <line x1="200" y1="50" x2="200" y2="290"/>
+                <line x1="240" y1="50" x2="240" y2="290"/>
+                <line x1="280" y1="50" x2="280" y2="290"/>
+                <line x1="320" y1="50" x2="320" y2="290"/>
+                <line x1="360" y1="50" x2="360" y2="290"/>
+                <line x1="400" y1="50" x2="400" y2="290"/>
+                <line x1="440" y1="50" x2="440" y2="290"/>
+                <line x1="480" y1="50" x2="480" y2="290"/>
+                <line x1="520" y1="50" x2="520" y2="290"/>
+            </g>
+
+            <!-- TSV callout -->
+            <line x1="120" y1="170" x2="155" y2="170" stroke="#76B900" stroke-width="1"/>
+            <text x="20" y="174" font-family="JetBrains Mono, monospace" font-size="10" fill="#76B900">TSVs &times;1024+</text>
+
+            <!-- Stack height callout -->
+            <line x1="585" y1="50" x2="585" y2="324" stroke="#8b949e" stroke-dasharray="3,3"/>
+            <text x="595" y="190" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">~720 &micro;m</text>
+
+            <!-- Right side label -->
+            <text x="360" y="450" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e" text-anchor="middle">Vertical scale exaggerated &mdash; horizontal not to scale</text>
+        </svg>
+    </div>
+
+    <h3>Layer-by-layer responsibilities</h3>
+    <ul>
+        <li><strong>DRAM dies (7&ndash;0)</strong> &mdash; identical 24 Gb (HBM3e) or 36 Gb (HBM4) dies, each with the same internal floorplan: bank groups, sense-amp arrays, row/column decoders. Memory cells are 1&alpha; or 1&beta; node DRAM.</li>
+        <li><strong>TSVs</strong> &mdash; copper pillars ~5&ndash;10 &micro;m diameter, ~50 &micro;m pitch, plated through silicon. Each die has thousands of them; the JEDEC HBM3 spec mandates ~1024 data + ~200 command/address/control lines per stack, plus power/ground.</li>
+        <li><strong>Base / buffer die</strong> &mdash; the only "logic" die in the stack. Hosts the PHY, ECC encode/decode, refresh state machine, repair logic for bad cells, temperature sensors, and the test interface (IEEE 1500). Manufactured on a logic-friendly process (~12 nm), unlike the DRAM dies.</li>
+        <li><strong>Micro-bumps</strong> &mdash; ~55 &micro;m pitch solder bumps connecting the base die down to the interposer.</li>
+        <li><strong>Silicon interposer</strong> &mdash; passive 2.5D substrate. Carries the 1024-bit bus laterally to the GPU die, also at ~55 &micro;m bump pitch and finer in-die routing.</li>
+    </ul>
+
+    <p>Notice the <em>asymmetry</em>: the buffer die does <em>real work</em>; the DRAM dies above it are mostly passive arrays with their TSVs ganged together. Every channel's command stream lands on the buffer die, gets decoded, then is fan-out broadcast up the TSVs to the right rank/die.</p>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>Channels &amp; Pseudo-Channels</h2>
+    <p>The 1024-bit bus is not a monolith &mdash; it's <strong>16 independently scheduled channels of 64 bits each</strong>. Each channel has its own command/address bus, its own banks, and its own row buffer. The memory controller can issue 16 different reads/writes to the same stack on the same cycle.</p>
+
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Stack</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item accent">1 &times; HBM3 stack &mdash; 1024-bit total bus</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Channels</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item">CH0 64b</div>
+                <div class="hierarchy-item">CH1 64b</div>
+                <div class="hierarchy-item">CH2 64b</div>
+                <div class="hierarchy-item">CH3 64b</div>
+                <div class="hierarchy-item">CH4 64b</div>
+                <div class="hierarchy-item">CH5 64b</div>
+                <div class="hierarchy-item">CH6 64b</div>
+                <div class="hierarchy-item">CH7 64b</div>
+                <div class="hierarchy-item">CH8 64b</div>
+                <div class="hierarchy-item">CH9 64b</div>
+                <div class="hierarchy-item">CH10 64b</div>
+                <div class="hierarchy-item">CH11 64b</div>
+                <div class="hierarchy-item">CH12 64b</div>
+                <div class="hierarchy-item">CH13 64b</div>
+                <div class="hierarchy-item">CH14 64b</div>
+                <div class="hierarchy-item">CH15 64b</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Pseudo-CH</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item accent">Each 64b channel = 2 &times; 32b PCs</div>
+                <div class="hierarchy-item">PC0a / PC0b</div>
+                <div class="hierarchy-item">PC1a / PC1b</div>
+                <div class="hierarchy-item">&hellip; 32 PCs total / stack</div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Pseudo-channel details</h3>
+    <p>HBM2 already had pseudo-channels (the JEDEC term has been around since 2016) but HBM3 sharpens the design: each 64-bit channel is split into <strong>two 32-bit pseudo-channels</strong> that share the data bus by time-slot but have <em>independent command streams</em>. So a small 32-byte transaction on PC0a can issue while PC0b is doing something else &mdash; doubled effective concurrency for fine-grained transfers.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Without pseudo-channels</h4>
+            <p>One 64-bit channel = one address per cycle. A 32-byte read wastes half the bus &mdash; the burst is 64 B minimum (BL=8 &times; 64 b).</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>With pseudo-channels (HBM3)</h4>
+            <p>Two 32-bit pseudo-channels under one physical channel. A 32-byte read uses BL=8 &times; 32 b on one half &mdash; full-bus utilisation. PC0a and PC0b can issue to different rows/banks simultaneously.</p>
+        </div>
+    </div>
+
+    <p>Why this matters for GPUs: Tensor Cores stream <em>large</em>, contiguous tiles &mdash; pseudo-channels don't help much there. But <strong>KV-cache reads</strong> in attention (small, scattered) and <strong>indirect lookups</strong> (sparse MoE expert gathers) do hit pseudo-channels well. HBM3e refines pseudo-channel arbitration further; HBM4 widens the stack to 2048 bits but keeps the pseudo-channel concept.</p>
+
+    <div class="callout">
+        <div class="callout-label">A common confusion</div>
+        <p>HBM "channel" is <em>not</em> the same as a CUDA "memory channel" or an Ada/Hopper "memory partition". A Hopper H100 has 5 HBM stacks, 16 channels each = 80 HBM channels; CUDA exposes them as 12 memory partitions / 80 sub-controllers depending on which level of the stack you're inspecting. They're independent concepts at different abstraction layers.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Banks, Bank Groups, Rows, and Columns</h2>
+    <p>Inside a single HBM channel, the addressing hierarchy is the same shape as DDR/LPDDR &mdash; banks &rarr; bank groups &rarr; rows &rarr; columns &mdash; just denser. Every memory operation is a sequence of <strong>activate</strong>, <strong>read/write column</strong>, and <strong>precharge</strong>.</p>
+
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Channel</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item accent">1 channel (HBM3)</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Bank groups</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item">BG0</div><div class="hierarchy-item">BG1</div>
+                <div class="hierarchy-item">BG2</div><div class="hierarchy-item">BG3</div>
+                <div class="hierarchy-item">BG4</div><div class="hierarchy-item">BG5</div>
+                <div class="hierarchy-item">BG6</div><div class="hierarchy-item">BG7</div>
+                <div class="hierarchy-item">BG8</div><div class="hierarchy-item">BG9</div>
+                <div class="hierarchy-item">BG10</div><div class="hierarchy-item">BG11</div>
+                <div class="hierarchy-item">BG12</div><div class="hierarchy-item">BG13</div>
+                <div class="hierarchy-item">BG14</div><div class="hierarchy-item">BG15</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Banks</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item">2 banks per BG</div>
+                <div class="hierarchy-item accent">32 banks per channel total</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Row</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item">~64 K rows per bank</div>
+                <div class="hierarchy-item">8 KB row width (page)</div>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Column</div>
+            <div class="hierarchy-items">
+                <div class="hierarchy-item">BL=8, beat = 32 b on a pseudo-channel</div>
+                <div class="hierarchy-item">32 B / 64 B per access</div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Timing, simplified</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Parameter</th><th>HBM3 typical</th><th>What it means</th></tr></thead>
+            <tbody>
+                <tr><td><code>tRC</code></td><td>~32 ns</td><td>Activate-to-activate same bank &mdash; the floor for changing rows.</td></tr>
+                <tr><td><code>tRCD</code></td><td>~14 ns</td><td>Activate to first column read &mdash; "row open" latency.</td></tr>
+                <tr><td><code>tRP</code></td><td>~14 ns</td><td>Precharge to next activate &mdash; closing the row before opening another.</td></tr>
+                <tr><td><code>tCCDL</code></td><td>~3 ns</td><td>Column-to-column delay <em>within</em> a bank group.</td></tr>
+                <tr><td><code>tCCDS</code></td><td>~2 ns</td><td>Column-to-column delay <em>across</em> bank groups (faster).</td></tr>
+                <tr><td><code>tFAW</code></td><td>~16 ns</td><td>Four-activation window &mdash; can't activate &gt; 4 banks too close together.</td></tr>
+                <tr><td><code>tREFI</code></td><td>~3.9 &micro;s</td><td>Refresh interval &mdash; one refresh command must issue per bank inside this window.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Row hits, bank-group parallelism, conflicts</h3>
+    <p>The memory controller's life consists of three modes:</p>
+    <ul>
+        <li><strong>Row hit</strong> &mdash; next access is to the currently open row in this bank. Cheap: a column read at <code>tCCDL</code> / <code>tCCDS</code>. Streaming sequential workloads are essentially all row hits.</li>
+        <li><strong>Row miss, bank free</strong> &mdash; activate a new row in a different bank in the same channel. Pipelinable: one bank's <code>tRC</code> overlaps with another bank's column reads. This is the heart of <strong>bank-group parallelism</strong>.</li>
+        <li><strong>Row conflict</strong> &mdash; need a different row in a bank that already has one open. Pay <code>tRP + tRCD</code> &asymp; <strong>~28 ns</strong> stall. This is what kills random small reads.</li>
+    </ul>
+
+    <p>Modern GPU memory controllers are <strong>deep, out-of-order, and very aware of bank state</strong>. They reorder pending requests to maximise row hits, schedule refreshes during natural gaps, and prefer cross-bank-group accesses to hide latency. NVIDIA's MC subsystem (sometimes called the FBPA / FBIO partitions in Hopper docs) is one of the most carefully tuned blocks on the chip &mdash; and the reason "the same DRAM" performs differently on different GPUs.</p>
+
+    <div class="callout">
+        <div class="callout-label">Practitioner takeaway</div>
+        <p>If your kernel access pattern is <strong>strided with a stride that hashes to one bank</strong>, you'll bank-conflict yourself into the ground regardless of total bandwidth. CUDA's memory hashing across channels mostly hides this for tile-friendly workloads, but pathological strides (powers of 2 close to 64 KB, KV-cache layouts that don't tile across heads) still bite. <code>ncu --set full</code> shows DRAM read-throughput vs request count &mdash; that ratio tells you whether you're serving rows or thrashing them.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>HBM Generation Numbers</h2>
+    <p>The headline numbers per JEDEC spec. The "per pin" rate is the per-data-line transfer rate; multiply by 1024 (or 2048 for HBM4) and divide by 8 to get GB/s/stack.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Gen</th><th>Year</th><th>Gb/s/pin</th><th>Bus / stack</th><th>BW / stack</th><th>Capacity / stack</th><th>Channels</th></tr></thead>
+            <tbody>
+                <tr><td><strong>HBM</strong></td><td>2015</td><td>1.0</td><td>1024 b</td><td>128 GB/s</td><td>1&ndash;4 GB</td><td>8 (128 b each)</td></tr>
+                <tr><td><strong>HBM2</strong></td><td>2016</td><td>2.0&ndash;2.4</td><td>1024 b</td><td>256&ndash;307 GB/s</td><td>4&ndash;8 GB</td><td>16 (64 b)</td></tr>
+                <tr><td><strong>HBM2e</strong></td><td>2019</td><td>3.2&ndash;3.6</td><td>1024 b</td><td>410&ndash;460 GB/s</td><td>8&ndash;16 GB</td><td>16 (64 b)</td></tr>
+                <tr><td><strong>HBM3</strong></td><td>2022</td><td>6.4</td><td>1024 b</td><td>819 GB/s</td><td>16&ndash;24 GB</td><td>16 (64 b) + 32 PCs</td></tr>
+                <tr><td><strong>HBM3e</strong></td><td>2024</td><td>9.2&ndash;9.6</td><td>1024 b</td><td>1.18&ndash;1.23 TB/s</td><td>24&ndash;36 GB</td><td>16 (64 b) + 32 PCs</td></tr>
+                <tr><td><strong>HBM4</strong></td><td>2026+</td><td>~8</td><td><strong>2048 b</strong></td><td>~2 TB/s</td><td>36&ndash;48 GB</td><td>32 (64 b)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>How NVIDIA datacenter GPUs stack up</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>GPU</th><th>HBM gen</th><th>Stacks</th><th>Capacity</th><th>Aggregate BW</th></tr></thead>
+            <tbody>
+                <tr><td>V100 SXM2</td><td>HBM2</td><td>4</td><td>16/32 GB</td><td>900 GB/s</td></tr>
+                <tr><td>A100 SXM4 80GB</td><td>HBM2e</td><td>5</td><td>80 GB</td><td>2.04 TB/s</td></tr>
+                <tr><td>H100 SXM5</td><td>HBM3</td><td>5</td><td>80 GB</td><td>3.35 TB/s</td></tr>
+                <tr><td>H200 SXM5</td><td>HBM3e</td><td>6</td><td>141 GB</td><td>4.8 TB/s</td></tr>
+                <tr><td>B100 / B200</td><td>HBM3e</td><td>8</td><td>192 GB</td><td>~8 TB/s</td></tr>
+                <tr><td>GB200 (per GPU)</td><td>HBM3e</td><td>8</td><td>192 GB</td><td>~8 TB/s</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Two things to notice. First, the <strong>BW per stack</strong> roughly doubles each generation while the <strong>per-pin rate</strong> only grew ~10&times; in a decade &mdash; the rest came from going from 8 to 16 channels (HBM2) and adding pseudo-channels (HBM3). HBM4's leap is structural again: it doubles the bus from 1024 to 2048 bits and <em>lowers</em> per-pin rate slightly to keep signal integrity in check.</p>
+
+    <p>Second, the <strong>stack count per GPU</strong> grows along with the package. Five stacks fit around an H100 die on CoWoS-S. Eight stacks need a bigger interposer &mdash; CoWoS-L with bridge dies on Blackwell B200. HBM4's bigger bus drives even more interposer area; expect Rubin-class GPUs to use CoWoS-L with multiple bridge dies.</p>
+
+    <div class="tier-visual">
+        <div class="tier-bar">
+            <div class="tier-label">V100</div>
+            <div class="tier-fill" style="width: 9%; background: rgba(118,185,0,0.3); color: var(--text-primary);">0.9 TB/s</div>
+            <div class="tier-cost">HBM2 &times;4</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">A100</div>
+            <div class="tier-fill" style="width: 21%; background: rgba(118,185,0,0.4); color: var(--text-primary);">2.04 TB/s</div>
+            <div class="tier-cost">HBM2e &times;5</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">H100</div>
+            <div class="tier-fill" style="width: 35%; background: rgba(118,185,0,0.55); color: var(--text-primary);">3.35 TB/s</div>
+            <div class="tier-cost">HBM3 &times;5</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">H200</div>
+            <div class="tier-fill" style="width: 50%; background: rgba(118,185,0,0.7); color: var(--text-primary);">4.8 TB/s</div>
+            <div class="tier-cost">HBM3e &times;6</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">B200</div>
+            <div class="tier-fill" style="width: 84%; background: rgba(118,185,0,0.85); color: #0a0a0a;">8 TB/s</div>
+            <div class="tier-cost">HBM3e &times;8</div>
+        </div>
+    </div>
+
+    <p>Same DRAM technology in H200 and B200; B200 just has more stacks (8 vs 6) on a bigger CoWoS-L interposer with the chip-to-chip NV-HBI link between the two dies of the dual-die package.</p>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>ECC &mdash; The Three Levels</h2>
+    <p>Datacenter HBM has <em>multiple</em> error-correction layers stacked on top of each other. They protect against different failure modes and have very different bandwidth costs.</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel accent-border">
+            <h4>1. On-die ECC</h4>
+            <p><strong>Always on</strong> in HBM3 and HBM3e. Each DRAM die has internal ECC that transparently corrects single-bit errors inside an array, scrubbing them before the data leaves the die.</p>
+            <ul>
+                <li>Cost: zero externally visible bandwidth or capacity</li>
+                <li>Hidden: extra cells inside each row, internal SECDED logic on the die</li>
+                <li>You cannot turn it off &mdash; it's part of the die</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>2. Side-band ECC</h4>
+            <p>Classic GDDR/HBM ECC mode. The DRAM controller sends an extra ECC code over a <em>separate</em> ECC channel (extra DQ pins) alongside the data.</p>
+            <ul>
+                <li>Cost: <strong>~6% bandwidth + 6% capacity</strong></li>
+                <li>Catches: bus errors, multi-bit faults that escaped on-die ECC</li>
+                <li>Default ON for datacenter (H100/H200/B200), OFF for consumer (RTX)</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>3. In-line ECC</h4>
+            <p>HBM3 spec adds the option to embed ECC <em>inside</em> the data channel rather than on a separate one &mdash; saves dedicated ECC pins.</p>
+            <ul>
+                <li>Cost: lower than side-band but variable</li>
+                <li>Trickier scheduling: must align ECC bursts with data bursts</li>
+                <li>Used selectively; some Blackwell configurations rely on it</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>What you see in <code>nvidia-smi</code></h3>
+    <div class="code-block">
+        <div class="code-header">$ nvidia-smi -q -d ECC</div>
+        <pre><code><span class="cm">==============NVSMI LOG==============</span>
+
+GPU 00000000:01:00.0
+    Product Name                          : NVIDIA H100 80GB HBM3
+    ECC Mode
+        Current                           : <span class="num">Enabled</span>
+        Pending                           : <span class="num">Enabled</span>
+    ECC Errors
+        Volatile
+            SRAM Correctable              : <span class="num">0</span>
+            SRAM Uncorrectable            : <span class="num">0</span>
+            DRAM Correctable              : <span class="num">3</span>     <span class="cm"># scrubbed by side-band</span>
+            DRAM Uncorrectable            : <span class="num">0</span>
+        Aggregate (since boot)
+            DRAM Correctable              : <span class="num">12</span>
+            DRAM Uncorrectable            : <span class="num">0</span>
+</code></pre>
+    </div>
+
+    <p>"DRAM Correctable" counts errors caught by side-band ECC. A handful per day on a healthy GPU is normal &mdash; cosmic rays and thermal noise. Hundreds-per-hour or any uncorrectable count means a row is going bad; the driver will eventually retire that page (page-retirement / row-remapping).</p>
+
+    <h3>Disabling ECC on inference-only hosts</h3>
+    <div class="code-block">
+        <div class="code-header">Reclaiming the ~6% capacity</div>
+        <pre><code><span class="cm"># list current state</span>
+$ nvidia-smi -q -d ECC | grep -A1 "ECC Mode"
+
+<span class="cm"># turn it off, reboot to apply</span>
+$ sudo nvidia-smi -e <span class="num">0</span>
+$ sudo reboot
+
+<span class="cm"># after reboot, an H100 80GB reports ~85.5 GiB usable instead of ~80 GiB</span>
+$ nvidia-smi --query-gpu=memory.total --format=csv
+memory.total [MiB]
+<span class="num">87559</span> MiB
+</code></pre>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">When to actually do this</div>
+        <p>For <strong>training</strong> &mdash; never. A single bit-flip on a gradient propagates through every parameter and you'll never find it. For <strong>serving inference</strong> &mdash; usually fine; a single-bit flip in a weight or KV-cache value usually changes a logit by O(1e-6) and gets averaged out. The 6% extra capacity is enough to fit a 70B q4_K_M model where it wouldn't otherwise. Datacenter operators typically leave ECC <em>on</em> anyway because the support burden of "weird sporadic numerical issues" is more painful than 6% of VRAM.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Refresh &mdash; The Tax You Always Pay</h2>
+    <p>DRAM cells are leaky capacitors. A 1-bit cell at the 1&beta; node holds maybe a few femto-coulombs of charge, leaking it through the access transistor and the substrate over time. Read it after the charge has drained &mdash; you read 0 instead of 1.</p>
+
+    <p>The fix is to <strong>refresh</strong> every row periodically &mdash; activate it (which puts the data in the row buffer, sense-amps detect it cleanly) and write it back. JEDEC mandates a full refresh of every row every <strong>32 ms</strong> (HBM3) or 64 ms (older). Above 85 &deg;C the interval halves: leakage doubles, so refresh frequency must double.</p>
+
+    <h3>How refresh interacts with throughput</h3>
+    <div class="diagram-vertical">
+        <div class="diagram-box dim">DRAM controller wants: 1024 b / cycle of useful data</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box accent">Reality: must inject ~1 refresh / 3.9 &micro;s / bank, each ~350 ns</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box dim">All-bank refresh would block channel for ~350 ns &mdash; 9% of cycles</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box accent">Fine-Granularity Refresh (FGR): refresh per-bank-group, overlap with other banks</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box dim">Practical refresh tax: ~2&ndash;3% of bandwidth on cool kit, ~5&ndash;7% above 85 &deg;C</div>
+    </div>
+
+    <h3>FGR modes</h3>
+    <ul>
+        <li><strong>1x refresh</strong> (legacy) &mdash; one all-bank refresh command stalls the entire channel for ~350 ns. Simple, costly.</li>
+        <li><strong>2x / 4x FGR</strong> &mdash; refresh more often but for shorter durations, hitting only one bank group at a time. Other bank groups can keep serving requests.</li>
+        <li><strong>Per-bank refresh (REFsb)</strong> &mdash; HBM3-specific. The MC schedules a refresh on whichever bank is currently idle, threading refreshes invisibly between real requests. Best case: refresh tax drops to ~1%.</li>
+    </ul>
+
+    <h3>Temperature, throttling, and refresh</h3>
+    <p>Each HBM stack reports its die temperatures back to the GPU. The GPU's firmware is responsible for both (a) cooling the GPU die enough that the HBM beside it doesn't cook, and (b) doubling the refresh rate above 85 &deg;C to keep data integrity. Around <strong>95 &deg;C</strong> the GPU starts thermal throttling clocks &mdash; partly to protect the HBM.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Cool (&le;75 &deg;C)</h4>
+            <ul>
+                <li>1x refresh, 32 ms interval</li>
+                <li>Refresh tax ~2%</li>
+                <li>Full per-pin rate</li>
+                <li>No throttle</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Warm (75&ndash;85 &deg;C)</h4>
+            <ul>
+                <li>1x refresh still</li>
+                <li>Refresh tax ~3%</li>
+                <li>Full clocks</li>
+                <li>Watch the trend</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Hot (85&ndash;95 &deg;C)</h4>
+            <ul>
+                <li><strong>2x refresh</strong> auto-engaged</li>
+                <li>Refresh tax 5&ndash;7%</li>
+                <li>HBM PHY may lower frequency</li>
+                <li>Effective BW down 10&ndash;15%</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Critical (&ge;95 &deg;C)</h4>
+            <ul>
+                <li>Throttling engaged</li>
+                <li>GPU clocks step down hard</li>
+                <li>HBM clocks step down</li>
+                <li>Sustained: rejected by ops as a hardware fault</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Operational signal</div>
+        <p>If <code>nvidia-smi -q -d TEMPERATURE</code> shows <code>Memory Current</code> persistently above 85 &deg;C while the GPU die ("GPU Current") sits at 70 &deg;C, your <em>HBM cooling</em> is the bottleneck &mdash; airflow through the side of the SXM module rather than through the heatsink fins. This is a packaging/thermal issue, not a compute one. SXM and OAM cards are designed for front-to-back airflow with no obstructions; the moment you put one in a 2U chassis with a bend in the duct, HBM temps rise faster than die temps.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>The HBM PHY</h2>
+    <p>"PHY" is the physical-layer block on the GPU side that drives the HBM bus &mdash; the analog and mixed-signal logic that turns digital command/address/data words into millivolts on micro-bumps and back. It's <em>massive</em>.</p>
+
+    <div class="canvas-wrap">
+        <svg viewBox="0 0 720 340" width="720" height="340" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="phyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.04"/>
+                </linearGradient>
+            </defs>
+
+            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e PHY block on the GPU side</text>
+
+            <!-- Outer PHY box -->
+            <rect x="40" y="40" width="640" height="280" fill="url(#phyGrad)" stroke="#76B900" stroke-width="1.5" rx="6"/>
+            <text x="60" y="60" fill="#76B900" font-family="JetBrains Mono, monospace" font-size="11">HBM3e PHY  &mdash;  ~24 mm&sup2; per stack interface</text>
+
+            <!-- Sub-blocks -->
+            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3">
+                <!-- C/A path -->
+                <rect x="60" y="80" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="150" y="105" text-anchor="middle">Command / Address</text>
+                <text x="150" y="120" text-anchor="middle" fill="#8b949e">SDR, ~1.5 Gb/s</text>
+
+                <!-- Data path -->
+                <rect x="260" y="80" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="350" y="105" text-anchor="middle">Data SerDes</text>
+                <text x="350" y="120" text-anchor="middle" fill="#8b949e">DDR, 9.2&ndash;9.6 Gb/s/pin</text>
+
+                <!-- Training -->
+                <rect x="460" y="80" width="200" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="560" y="105" text-anchor="middle">Training / Eq</text>
+                <text x="560" y="120" text-anchor="middle" fill="#8b949e">DFE, CTLE, deskew</text>
+
+                <!-- ECC encode/decode -->
+                <rect x="60" y="160" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="150" y="185" text-anchor="middle">ECC encode/decode</text>
+                <text x="150" y="200" text-anchor="middle" fill="#8b949e">side-band + in-line</text>
+
+                <!-- CRC -->
+                <rect x="260" y="160" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="350" y="185" text-anchor="middle">CRC engine</text>
+                <text x="350" y="200" text-anchor="middle" fill="#8b949e">retry on bus errors</text>
+
+                <!-- Repair / spare -->
+                <rect x="460" y="160" width="200" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <text x="560" y="185" text-anchor="middle">Lane repair / row remap</text>
+                <text x="560" y="200" text-anchor="middle" fill="#8b949e">spare lanes, soft-repair</text>
+
+                <!-- I/O drivers -->
+                <rect x="60" y="240" width="600" height="60" fill="#0d1117" stroke="#21262d" rx="4"/>
+                <text x="360" y="265" text-anchor="middle" fill="#76B900">I/O driver array  &mdash;  1024 data + ~200 C/A lines &times; 5&ndash;8 stacks per GPU</text>
+                <text x="360" y="285" text-anchor="middle" fill="#8b949e">Termination (ODT), VREF, VPP, VDDQ regulation</text>
+            </g>
+        </svg>
+    </div>
+
+    <h3>Why it's so big</h3>
+    <p>A Hopper GH100 spends roughly <strong>120 mm&sup2;</strong> of its ~814 mm&sup2; die on the five HBM3 PHYs &mdash; ~15% of total die area. Reasons:</p>
+    <ul>
+        <li><strong>Pin count</strong> &mdash; ~1224 signals per stack, &times;5 stacks = ~6000 differential / single-ended IO drivers, each with its own equalisation and termination.</li>
+        <li><strong>Analog content</strong> &mdash; receivers (CTLE, DFE), drivers, voltage references. Analog doesn't shrink with each node like digital does, so the PHY is one of the slowest-shrinking blocks.</li>
+        <li><strong>Training and calibration</strong> &mdash; on every reset the PHY runs a multi-stage training sequence (per-bit-deskew, eye-margin scan, voltage centring) before the bus is usable. This logic stays resident.</li>
+        <li><strong>Signal-integrity guard space</strong> &mdash; analog blocks demand keep-out from noisy digital, so the PHY area is more than just transistor count.</li>
+    </ul>
+
+    <h3>IP licensing</h3>
+    <p>NVIDIA, AMD, Intel, and the cloud-silicon shops all <strong>license HBM PHY IP</strong> from <strong>Synopsys, Cadence, or Rambus</strong> rather than designing in-house. The PHY is too analog-heavy and too gen-specific (HBM3 vs HBM3e vs HBM4) for in-house teams to economically maintain. Synopsys' DesignWare HBM3e PHY is the most-used building block in industry; if you're working on a chiplet-class accelerator and HBM is on your BoM, expect to integrate it.</p>
+
+    <p>The downside: PHY IP is shared, so PHY-level innovation is bounded. NVIDIA's edge over AMD on HBM bandwidth utilisation comes mostly from <em>memory-controller</em> design (FBPA scheduling, hashing, prefetching) rather than the PHY itself. If two GPUs use the same Synopsys PHY behind different controllers, they'll deliver very different effective BW &mdash; same raw bus, different schedulers.</p>
+
+    <div class="callout">
+        <div class="callout-label">Why HBM4's bus doubling matters here</div>
+        <p>Going from 1024 to 2048 bits per stack in HBM4 doubles the PHY pin count. At HBM3e PHY scaling (~24 mm&sup2; per stack), HBM4 PHYs would need ~48 mm&sup2; each &mdash; multiplied by 6&ndash;8 stacks, that's most of a reticle. The way out: HBM4 lowers the per-pin rate slightly (~8 Gb/s instead of 9.6) and uses CoWoS-L bridges to keep the GPU die smaller. But the PHY area floor is now the practical limit on how many HBM4 stacks you can attach &mdash; not the interposer area itself.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>CoWoS Packaging &mdash; How It's Actually Built</h2>
+    <p>"CoWoS" is TSMC's <strong>Chip-on-Wafer-on-Substrate</strong> &mdash; the 2.5D packaging family that puts GPU + HBM stacks side-by-side on a silicon interposer, then mounts the whole thing on an organic substrate. NVIDIA datacenter GPUs from V100 onward all use it.</p>
+
+    <div class="canvas-wrap">
+        <svg viewBox="0 0 720 380" width="720" height="380" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="cowosBase" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#0d1117"/>
+                    <stop offset="100%" stop-color="#161b22"/>
+                </linearGradient>
+                <linearGradient id="cowosGpu" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.08"/>
+                </linearGradient>
+                <linearGradient id="cowosHbm" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3a4a5a"/>
+                    <stop offset="100%" stop-color="#1a2330"/>
+                </linearGradient>
+            </defs>
+
+            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">CoWoS-L cross-section &mdash; Blackwell-class GPU + 8 HBM stacks</text>
+
+            <!-- Heatsink lid -->
+            <rect x="40" y="40" width="640" height="20" fill="#5a6a7a" stroke="#3a4a5a"/>
+            <text x="50" y="55" font-family="JetBrains Mono, monospace" font-size="10" fill="#0d1117">Integrated heat spreader / lid (Cu-Ni)</text>
+
+            <!-- TIM gap -->
+            <rect x="40" y="60" width="640" height="6" fill="#2a1b1b"/>
+            <text x="50" y="74" font-family="JetBrains Mono, monospace" font-size="9" fill="#8b949e">TIM (indium / liquid metal)</text>
+
+            <!-- HBM stacks left -->
+            <rect x="60" y="80"  width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
+            <text x="100" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+            <text x="100" y="148" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">stack</text>
+
+            <rect x="150" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
+            <text x="190" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+
+            <rect x="240" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
+            <text x="280" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+
+            <rect x="330" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
+            <text x="370" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+
+            <!-- GPU dies (dual) -->
+            <rect x="420" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#76B900"/>
+            <text x="480" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#76B900" text-anchor="middle" font-weight="700">GPU die A</text>
+            <text x="480" y="145" font-family="JetBrains Mono, monospace" font-size="9" fill="#76B900" text-anchor="middle">~830 mm&sup2;</text>
+
+            <rect x="545" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#76B900"/>
+            <text x="605" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#76B900" text-anchor="middle" font-weight="700">GPU die B</text>
+
+            <!-- NV-HBI bridge die between the two GPUs -->
+            <rect x="538" y="180" width="14" height="20" fill="#ffa657" stroke="#7a5a3a"/>
+            <text x="545" y="218" font-family="JetBrains Mono, monospace" font-size="9" fill="#ffa657" text-anchor="middle">NV-HBI</text>
+
+            <!-- Micro-bumps -->
+            <g fill="#76B900">
+                <circle cx="80"  cy="186" r="2.5"/><circle cx="100" cy="186" r="2.5"/><circle cx="120" cy="186" r="2.5"/>
+                <circle cx="170" cy="186" r="2.5"/><circle cx="190" cy="186" r="2.5"/><circle cx="210" cy="186" r="2.5"/>
+                <circle cx="260" cy="186" r="2.5"/><circle cx="280" cy="186" r="2.5"/><circle cx="300" cy="186" r="2.5"/>
+                <circle cx="350" cy="186" r="2.5"/><circle cx="370" cy="186" r="2.5"/><circle cx="390" cy="186" r="2.5"/>
+                <circle cx="440" cy="186" r="2.5"/><circle cx="470" cy="186" r="2.5"/><circle cx="500" cy="186" r="2.5"/>
+                <circle cx="565" cy="186" r="2.5"/><circle cx="600" cy="186" r="2.5"/><circle cx="640" cy="186" r="2.5"/>
+            </g>
+
+            <!-- Silicon interposer / LSI bridges -->
+            <rect x="40" y="195" width="640" height="40" fill="#1f2a36" stroke="#3a4a5a"/>
+            <text x="50" y="218" font-family="JetBrains Mono, monospace" font-size="11" fill="#e6edf3">Silicon interposer (CoWoS-L)</text>
+            <!-- LSI bridges drawn as smaller rectangles -->
+            <rect x="115" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
+            <rect x="205" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
+            <rect x="295" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
+            <rect x="385" y="200" width="105" height="14" fill="#ffa657" opacity="0.55"/>
+            <text x="430" y="232" font-family="JetBrains Mono, monospace" font-size="9" fill="#ffa657">LSI bridges (Local Si Interconnect)</text>
+
+            <!-- C4 bumps -->
+            <g fill="#8b949e">
+                <circle cx="70"  cy="245" r="3"/><circle cx="120" cy="245" r="3"/><circle cx="180" cy="245" r="3"/>
+                <circle cx="240" cy="245" r="3"/><circle cx="300" cy="245" r="3"/><circle cx="360" cy="245" r="3"/>
+                <circle cx="420" cy="245" r="3"/><circle cx="480" cy="245" r="3"/><circle cx="540" cy="245" r="3"/>
+                <circle cx="600" cy="245" r="3"/><circle cx="660" cy="245" r="3"/>
+            </g>
+
+            <!-- Substrate -->
+            <rect x="20" y="252" width="680" height="50" fill="url(#cowosBase)" stroke="#21262d"/>
+            <text x="30" y="280" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b949e">Organic package substrate (build-up layers + core)</text>
+
+            <!-- BGA balls -->
+            <g fill="#bdc3cf">
+                <circle cx="60"  cy="320" r="6"/><circle cx="120" cy="320" r="6"/><circle cx="180" cy="320" r="6"/>
+                <circle cx="240" cy="320" r="6"/><circle cx="300" cy="320" r="6"/><circle cx="360" cy="320" r="6"/>
+                <circle cx="420" cy="320" r="6"/><circle cx="480" cy="320" r="6"/><circle cx="540" cy="320" r="6"/>
+                <circle cx="600" cy="320" r="6"/><circle cx="660" cy="320" r="6"/>
+            </g>
+            <text x="30" y="343" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">BGA ball-grid mounting to OAM / SXM5 board</text>
+
+            <text x="360" y="372" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e" text-anchor="middle">Vertical scale heavily exaggerated</text>
+        </svg>
+    </div>
+
+    <h3>The build sequence</h3>
+    <ol>
+        <li><strong>Start with a 12-inch silicon wafer</strong>. Etch the interposer's RDL (re-distribution layers) and TSV array onto it.</li>
+        <li><strong>Place GPU die + HBM stacks</strong> face-down onto the interposer using micro-bump bonding (~55 &micro;m pitch). Underfill with epoxy.</li>
+        <li><strong>Mount the assembled interposer + chips</strong> onto an organic substrate using C4 bumps (~150 &micro;m pitch). This is the "Wafer-on-Substrate" step.</li>
+        <li><strong>Add the integrated heat spreader (lid)</strong> with thermal interface material on top of the dies.</li>
+        <li><strong>Solder BGA balls</strong> on the underside of the substrate for mounting on the OAM/SXM card.</li>
+    </ol>
+
+    <h3>CoWoS variants</h3>
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel accent-border">
+            <h4>CoWoS-S</h4>
+            <p>Original silicon-interposer flow. Single passive interposer carrying GPU + ~5 HBM stacks. Reticle limit ~830 mm&sup2; on the interposer.</p>
+            <ul>
+                <li>V100, A100, H100, H200</li>
+                <li>5&ndash;6 HBM stacks max comfortable</li>
+                <li>Mature, high-volume</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>CoWoS-L</h4>
+            <p>Adds <strong>LSI bridges</strong> &mdash; small silicon interconnect dies embedded in an organic-RDL substrate. Lets the package exceed the reticle limit by tiling multiple bridges.</p>
+            <ul>
+                <li>Blackwell B100/B200, GB200</li>
+                <li>Two GPU dies + 8 HBM stacks</li>
+                <li>Higher cost, lower yield</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>CoWoS-R</h4>
+            <p>Replaces the silicon interposer with a fine-pitch organic redistribution layer. Lower bandwidth density; used for cheaper accelerators that don't need full HBM density.</p>
+            <ul>
+                <li>Niche; not used by NVIDIA datacenter GPUs</li>
+                <li>Better yield, lower BW</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Reticle limit and Blackwell's response</h3>
+    <p>Lithography reticles cap the largest single die a stepper can pattern at <strong>~830 mm&sup2;</strong>. H100's GH100 die is right up against this limit at 814 mm&sup2;. To go bigger, you have two choices: stitch reticles (slow, exotic, used for Cerebras WSE) or split the design across two dies and connect them with a bridge.</p>
+
+    <p>Blackwell B200 takes the second route: <strong>two GPU dies side-by-side</strong>, each ~830 mm&sup2;, connected by NVIDIA's <strong>NV-HBI</strong> (NVLink-High Bandwidth Interface) at ~10 TB/s through CoWoS-L bridge dies. To system software, B200 looks like one GPU; physically, it's a chiplet pair. This is what made the 8-stack HBM3e configuration possible.</p>
+
+    <div class="callout">
+        <div class="callout-label">The CoWoS bottleneck</div>
+        <p>Through 2024-2026, <strong>TSMC's CoWoS capacity</strong> &mdash; not wafer fab, not HBM supply &mdash; has been the binding constraint on H100/H200/B200 production. Each GPU consumes one slot of CoWoS-S or CoWoS-L flow, which has long process times and dedicated equipment. NVIDIA has taken the lion's share of this capacity since 2023; AMD MI300 contention competes for the same line. Watch CoWoS capacity announcements as the leading indicator for datacenter GPU availability, more so than node-shrink schedules.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>What You Actually Get vs Spec Sheet</h2>
+    <p>The spec-sheet number is a peak: 1024 b &times; 9.2 Gb/s/pin / 8 = ~1.18 TB/s/stack, &times;6 stacks = ~7 TB/s on H200. The number you measure with <code>cudaMemcpy</code> or in a kernel is always lower &mdash; here's why.</p>
+
+    <h3>Bandwidth tax breakdown</h3>
+    <div class="tier-visual">
+        <div class="tier-bar">
+            <div class="tier-label">Spec peak</div>
+            <div class="tier-fill" style="width: 100%; background: rgba(118,185,0,0.85); color: #0a0a0a;">100% &mdash; 4.8 TB/s on H200 spec</div>
+            <div class="tier-cost">peak</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">- refresh</div>
+            <div class="tier-fill" style="width: 97%; background: rgba(118,185,0,0.75); color: #0a0a0a;">~97% &mdash; refresh tax 2&ndash;3% cool</div>
+            <div class="tier-cost">-2&ndash;3%</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">- ECC sb</div>
+            <div class="tier-fill" style="width: 91%; background: rgba(118,185,0,0.65); color: #0a0a0a;">~91% &mdash; side-band ECC overhead</div>
+            <div class="tier-cost">-6%</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">- thermal</div>
+            <div class="tier-fill" style="width: 86%; background: rgba(118,185,0,0.55); color: var(--text-primary);">~86% &mdash; warm operation</div>
+            <div class="tier-cost">-5%</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">streaming</div>
+            <div class="tier-fill" style="width: 82%; background: rgba(118,185,0,0.5); color: var(--text-primary);">~82% achieved &mdash; ~3.9 TB/s</div>
+            <div class="tier-cost">good</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">strided 128B</div>
+            <div class="tier-fill" style="width: 65%; background: rgba(255,166,87,0.5); color: var(--text-primary);">~65% achieved &mdash; ~3.1 TB/s</div>
+            <div class="tier-cost">ok</div>
+        </div>
+        <div class="tier-bar">
+            <div class="tier-label">random 32B</div>
+            <div class="tier-fill" style="width: 30%; background: rgba(255,123,114,0.55); color: var(--text-primary);">~30% achieved &mdash; ~1.4 TB/s</div>
+            <div class="tier-cost">bad</div>
+        </div>
+    </div>
+
+    <h3>Worked example: H200 BF16 weight streaming vs random KV</h3>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>BF16 weight streaming (good case)</h4>
+            <p>Decode-step weight read for a 70B BF16 model, vLLM tile-friendly layout, ECC on, GPU at 75 &deg;C.</p>
+            <ul>
+                <li>Spec: <strong>4.8 TB/s</strong></li>
+                <li>Refresh tax: -2.5%</li>
+                <li>ECC side-band: -6%</li>
+                <li>Bus utilisation (sequential, large bursts): ~95%</li>
+                <li>Achieved: <strong>~4.4 TB/s</strong></li>
+                <li>140 GB / 4.4 TB/s &asymp; <strong>32 ms / pass</strong> &rarr; ~31 tok/s on 70B BF16</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Random 32 B KV-cache reads (bad case)</h4>
+            <p>Long-context attention with non-coalesced KV layout, 8K sequence, 16 heads, scattered head/token order.</p>
+            <ul>
+                <li>Spec: <strong>4.8 TB/s</strong></li>
+                <li>Refresh + ECC: same -8.5%</li>
+                <li>Random 32 B: bus utilisation ~30%</li>
+                <li>Hot operation (hot HBM): -10%</li>
+                <li>Achieved: <strong>~1.4 TB/s</strong></li>
+                <li><em>3&times; slower for the exact same DRAM, exact same workload mass</em></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">The lesson</div>
+        <p>Cache-friendly access patterns are not a nice-to-have on HBM &mdash; they're the difference between "uses the GPU" and "uses 30% of it". A single bad KV-cache layout can reduce a 70B-on-H200 from 30 tok/s to 10 tok/s without you ever seeing a single error. This is why FlashAttention and PagedAttention exist. They're not "small kernel tricks", they're <em>HBM utilisation rescue jobs</em>.</p>
+    </div>
+
+    <h3>Tools to measure it</h3>
+    <ul>
+        <li><strong>Nsight Compute (<code>ncu</code>)</strong> &mdash; <code>--set full</code> reports DRAM throughput, sector reads/writes, L2 hit rate. <code>dram__bytes_read.sum</code> and <code>dram__throughput.avg.pct_of_peak_sustained_elapsed</code> are the load-bearing metrics.</li>
+        <li><strong>Nsight Systems</strong> &mdash; CUDA timeline + DRAM utilisation traces over time. Useful to spot phases where you fall off the bandwidth cliff.</li>
+        <li><strong>DCGM (<code>dcgm-exporter</code>)</strong> &mdash; production telemetry. <code>DCGM_FI_PROF_DRAM_ACTIVE</code> is the percent of cycles DRAM was busy doing real work. &gt;75% is good for serving; under 30% means you're compute-bound or your kernels are bad.</li>
+        <li><strong>Bandwidth microbenchmark</strong> &mdash; <code>babelStream</code> or NVIDIA's <code>nvbandwidth</code> for sanity-checking peak achievable bandwidth on your specific board.</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-11">
+    <div class="slide-number">11</div>
+    <h2>Interactive: HBM Bandwidth Estimator</h2>
+    <p>Pick a GPU, an access pattern, ECC and thermal state. The estimator applies the taxes from the previous slide and reports the bandwidth you can plausibly expect to <em>measure</em>, plus advice on what's costing you.</p>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="bw-gpu">GPU class</label>
+            <select id="bw-gpu">
+                <option value="A100-80">A100 80 GB &mdash; HBM2e &times;5 &mdash; 2.04 TB/s</option>
+                <option value="H100-80">H100 80 GB &mdash; HBM3 &times;5 &mdash; 3.35 TB/s</option>
+                <option value="H200-141" selected>H200 141 GB &mdash; HBM3e &times;6 &mdash; 4.8 TB/s</option>
+                <option value="B200-192">B200 192 GB &mdash; HBM3e &times;8 &mdash; 8.0 TB/s</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="bw-pattern">Access pattern</label>
+            <select id="bw-pattern">
+                <option value="seq" selected>Sequential streaming (large tiles, BF16 weights)</option>
+                <option value="strided">Strided 128 B (semi-coalesced)</option>
+                <option value="random128">Random 128 B (scattered, friendly size)</option>
+                <option value="random32">Random 32 B (scattered KV-cache, atomics)</option>
+                <option value="mixed">Mixed (40% streaming + 60% KV)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="bw-ecc">ECC mode</label>
+            <select id="bw-ecc">
+                <option value="on" selected>On (datacenter default, side-band)</option>
+                <option value="off">Off (capacity reclaim, RTX-style)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="bw-temp">Thermal state</label>
+            <select id="bw-temp">
+                <option value="cool" selected>Cool (&le;75 &deg;C HBM)</option>
+                <option value="warm">Warm (75&ndash;85 &deg;C)</option>
+                <option value="hot">Hot (85&ndash;95 &deg;C)</option>
+                <option value="critical">Critical (&ge;95 &deg;C, throttling)</option>
+            </select>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Spec BW</div><div class="metric-value" id="m-spec">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Achieved BW</div><div class="metric-value" id="m-achieved">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Efficiency</div><div class="metric-value" id="m-eff">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Refresh tax</div><div class="metric-value" id="m-ref">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">ECC overhead</div><div class="metric-value" id="m-ecc">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Thermal de-rate</div><div class="metric-value" id="m-thr">&mdash;</div></div>
+        </div>
+
+        <div class="result-box" id="bw-out">Choose a configuration to see the estimate.</div>
+    </div>
+
+    <p>Method: spec BW &times; (1 &minus; refresh%) &times; (1 &minus; ECC%) &times; (1 &minus; thermal%) &times; pattern_efficiency. Pattern efficiency is the bus utilisation factor for that access shape: ~95% sequential, ~70% strided 128 B, ~55% random 128 B, ~30% random 32 B. These are realistic ranges from <code>ncu</code> measurements on Hopper-class kit; numbers vary &plusmn;5% across kernels.</p>
+
+    <script>
+    (function () {
+        const SPECS = {
+            'A100-80':  { name: 'A100 80GB',   spec: 2.04, gen: 'HBM2e' },
+            'H100-80':  { name: 'H100 80GB',   spec: 3.35, gen: 'HBM3'  },
+            'H200-141': { name: 'H200 141GB',  spec: 4.8,  gen: 'HBM3e' },
+            'B200-192': { name: 'B200 192GB',  spec: 8.0,  gen: 'HBM3e' }
+        };
+        const PATTERNS = {
+            'seq':       { eff: 0.95, label: 'Sequential streaming' },
+            'strided':   { eff: 0.70, label: 'Strided 128 B'        },
+            'random128': { eff: 0.55, label: 'Random 128 B'         },
+            'random32':  { eff: 0.30, label: 'Random 32 B'          },
+            'mixed':     { eff: 0.55, label: 'Mixed 40/60'          }
+        };
+        const TEMPS = {
+            'cool':     { thermal: 0.00, refresh: 0.02, label: 'cool',     pinDerate: 0.00 },
+            'warm':     { thermal: 0.02, refresh: 0.03, label: 'warm',     pinDerate: 0.00 },
+            'hot':      { thermal: 0.10, refresh: 0.06, label: 'hot',      pinDerate: 0.05 },
+            'critical': { thermal: 0.25, refresh: 0.07, label: 'critical', pinDerate: 0.15 }
+        };
+
+        function pct(x)  { return (x * 100).toFixed(1) + '%'; }
+        function tbs(x)  { return x.toFixed(2) + ' TB/s'; }
+
+        function recompute () {
+            const gpu     = SPECS[document.getElementById('bw-gpu').value];
+            const pattern = PATTERNS[document.getElementById('bw-pattern').value];
+            const ecc     = document.getElementById('bw-ecc').value;
+            const temp    = TEMPS[document.getElementById('bw-temp').value];
+
+            const eccTax     = (ecc === 'on') ? 0.06 : 0.0;
+            const refreshTax = temp.refresh;
+            const thermalTax = temp.thermal + temp.pinDerate;
+
+            const factor = (1 - refreshTax) * (1 - eccTax) * (1 - thermalTax) * pattern.eff;
+            const achieved = gpu.spec * factor;
+            const efficiency = factor;
+
+            document.getElementById('m-spec').textContent     = tbs(gpu.spec);
+            document.getElementById('m-achieved').textContent = tbs(achieved);
+            document.getElementById('m-eff').textContent      = pct(efficiency);
+            document.getElementById('m-ref').textContent      = pct(refreshTax);
+            document.getElementById('m-ecc').textContent      = pct(eccTax);
+            document.getElementById('m-thr').textContent      = pct(thermalTax);
+
+            // Advice
+            let lines = [];
+            lines.push('<span class="line-label">' + gpu.name + '  &mdash;  ' + gpu.gen + '  &mdash;  ' + pattern.label + '</span>');
+            lines.push('<span class="line-label">spec</span>     <span class="line-val">' + tbs(gpu.spec) + '</span>');
+            lines.push('<span class="line-label">achieved</span> <span class="line-val">' + tbs(achieved) + '</span> <span class="line-label">(' + pct(efficiency) + ' of spec)</span>');
+            lines.push('<span class="line-label">losses</span>   refresh ' + pct(refreshTax) + ' &middot; ECC ' + pct(eccTax) + ' &middot; thermal ' + pct(thermalTax) + ' &middot; pattern ' + pct(1 - pattern.eff));
+
+            // Suggestion
+            let advice = '';
+            const id = document.getElementById('bw-pattern').value;
+            const tid = document.getElementById('bw-temp').value;
+            if (id === 'random32') {
+                advice = '<span class="line-label">advice:</span> Random 32 B is the worst case. Re-tile the kernel to 128 B accesses; ensure KV-cache stride aligns to a sector. Using FlashAttention or PagedAttention will typically claw back 2&ndash;3&times;.';
+            } else if (id === 'random128') {
+                advice = '<span class="line-label">advice:</span> Random 128 B isn\'t catastrophic, but you\'re still leaving roughly 40% on the table. Consider sorting indices, batching gathers, or using <code>ldg.128</code> with prefetch.';
+            } else if (id === 'strided') {
+                advice = '<span class="line-label">advice:</span> Strided 128 B is fine. Watch out for power-of-2 strides that hash to a single bank &mdash; padding by 1 element can sometimes recover 10&ndash;20%.';
+            } else if (id === 'mixed') {
+                advice = '<span class="line-label">advice:</span> Mixed workloads are the realistic LLM serving case. Split your kernel: streaming weights in one warp group, KV gathers in another, so the MC can overlap row-hits with row-misses.';
+            } else {
+                advice = '<span class="line-label">advice:</span> You\'re in the streaming sweet spot &mdash; HBM is doing its best work. Look elsewhere for bottlenecks (Tensor Core utilisation, NCCL, host loops).';
+            }
+
+            if (tid === 'hot' || tid === 'critical') {
+                advice += '<br><span class="line-label">thermal:</span> HBM &gt; 85 &deg;C means refresh has doubled and PHY may have de-rated. Check airflow before optimising the kernel.';
+            }
+            if (id === 'random32' && tid === 'hot') {
+                advice += '<br><span class="line-label">worst case:</span> random 32 B at 85+ &deg;C is the canonical "spec-vs-reality" disaster &mdash; ' + tbs(achieved) + ' actual on a ' + tbs(gpu.spec) + ' GPU.';
+            }
+
+            lines.push(advice);
+
+            document.getElementById('bw-out').innerHTML = lines.join('<br>');
+        }
+
+        ['bw-gpu', 'bw-pattern', 'bw-ecc', 'bw-temp'].forEach(id => {
+            document.getElementById(id).addEventListener('change', recompute);
+        });
+        recompute();
+    })();
+    </script>
+
+    <h3>Quick sanity numbers</h3>
+    <ul>
+        <li><strong>H200 / sequential / cool / ECC on</strong> &rarr; ~3.9 TB/s (82% of spec). This is what tuned BF16 weight streaming actually hits.</li>
+        <li><strong>H200 / random 32 B / hot / ECC on</strong> &rarr; ~1.2 TB/s (25%). The "why is my long-context inference so slow" number.</li>
+        <li><strong>B200 / sequential / cool / ECC on</strong> &rarr; ~6.6 TB/s. Real-world Blackwell streaming numbers from the field match this within ~3%.</li>
+        <li><strong>A100 / strided / cool / ECC on</strong> &rarr; ~1.3 TB/s &mdash; useful as a baseline for older fleets.</li>
+    </ul>
+
+    <div class="callout">
+        <div class="callout-label">If you take one thing away</div>
+        <p>HBM's spec-sheet TB/s is achievable, but only when the kernel cooperates. Refresh and ECC together cost ~8% on every GPU, every workload, no avoiding them. Thermal can cost another ~10% if your server's airflow is bad. The remaining 80% of the bus is yours &mdash; but only if your access pattern can fill it. The whole "memory wall" conversation in 2026 is really a conversation about how much of <em>that</em> 80% your code actually claims.</p>
+    </div>
+</section>
+<!-- ════════════════════════════════════ Footer ════════════════════════════════════ -->
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">NVIDIA GPU Architectures Series</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">Back to Series Index</a></p>
+</footer>
+
+<script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Subtle fade-in on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+
+</body>
+</html>
