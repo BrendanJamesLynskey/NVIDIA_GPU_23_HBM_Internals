@@ -9,15 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-card: #0d1117;
-            --bg-code: #161b22;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --accent: #76B900;
-            --accent-dim: #76B90044;
-            --accent-glow: #76B90033;
-            --border: #21262d;
+            --bg-primary: #1b1b1a;
+            --bg-card: #212120;
+            --bg-code: #292928;
+            --text-primary: #edede7;
+            --text-secondary: #9b9b95;
+            --accent: #b8b315;
+            --accent-dim: #b8b31544;
+            --accent-glow: #b8b31533;
+            --border: #363633;
             --font-display: 'Space Grotesk', sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
             --font-body: 'Inter', sans-serif;
@@ -228,7 +228,7 @@
             font-family: var(--font-mono);
             font-size: 0.75rem;
             color: var(--accent);
-            background: rgba(118, 185, 0, 0.08);
+            background: rgba(184,179,21,0.08);
             padding: 0.4rem 1rem;
             border-bottom: 1px solid var(--border);
         }
@@ -243,18 +243,18 @@
             font-family: var(--font-mono);
             font-size: 0.85rem;
             line-height: 1.6;
-            color: #c9d1d9;
+            color: #d5d5cf;
         }
 
         /* Syntax highlighting (manual) */
-        .kw { color: #ff7b72; }
-        .fn { color: #d2a8ff; }
-        .str { color: #a5d6ff; }
-        .cm { color: #8b949e; font-style: italic; }
-        .num { color: #79c0ff; }
-        .type { color: #ffa657; }
-        .dir { color: #ff7b72; }
-        .mac { color: #ffa657; }
+        .kw { color: #e57d63; }
+        .fn { color: #d1c2e1; }
+        .str { color: #c9dbe2; }
+        .cm { color: #9b9b95; font-style: italic; }
+        .num { color: #afcbd8; }
+        .type { color: #e0b172; }
+        .dir { color: #e57d63; }
+        .mac { color: #e0b172; }
 
         /* ── Tables ── */
         .table-wrap {
@@ -292,7 +292,7 @@
         }
 
         tr:nth-child(even) td {
-            background: rgba(13, 17, 23, 0.5);
+            background: rgba(33,33,32,0.5);
         }
 
         /* ── Diagrams ── */
@@ -324,7 +324,7 @@
         .diagram-box.accent {
             border-color: var(--accent);
             color: var(--accent);
-            background: rgba(118, 185, 0, 0.08);
+            background: rgba(184,179,21,0.08);
         }
 
         .diagram-box.dim {
@@ -400,7 +400,7 @@
         .hierarchy-item.accent {
             border-color: var(--accent);
             color: var(--accent);
-            background: rgba(118, 185, 0, 0.08);
+            background: rgba(184,179,21,0.08);
         }
 
         /* Grid diagram */
@@ -673,7 +673,7 @@
             cursor: pointer;
             transition: background 0.15s ease;
         }
-        .btn:hover { background: rgba(118, 185, 0, 0.2); }
+        .btn:hover { background: rgba(184,179,21,0.2); }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn.secondary {
             background: var(--bg-code);
@@ -750,8 +750,8 @@
             margin-left: 0.3rem;
         }
         .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
-        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+        .badge.warn  { border-color: #e0b172; color: #e0b172; background: rgba(224,177,114,0.08); }
+        .badge.bad   { border-color: #e57d63; color: #e57d63; background: rgba(229,125,99,0.08); }
 
     </style>
 </head>
@@ -864,56 +864,56 @@
         <svg viewBox="0 0 720 460" width="720" height="460" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="dieGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#1a2330"/>
-                    <stop offset="100%" stop-color="#0d1117"/>
+                    <stop offset="0%" stop-color="#323230"/>
+                    <stop offset="100%" stop-color="#212120"/>
                 </linearGradient>
                 <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.18"/>
-                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.05"/>
+                    <stop offset="0%" stop-color="#b8b315" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="#b8b315" stop-opacity="0.05"/>
                 </linearGradient>
                 <linearGradient id="interGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#3a4a5a"/>
-                    <stop offset="100%" stop-color="#1f2a36"/>
+                    <stop offset="0%" stop-color="#4d4d49"/>
+                    <stop offset="100%" stop-color="#3a3a37"/>
                 </linearGradient>
             </defs>
 
             <!-- Stack label -->
-            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e Stack &mdash; Cross-Section</text>
+            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e Stack &mdash; Cross-Section</text>
 
             <!-- 8 DRAM dies -->
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">
-                <rect x="160" y="50"  width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">
+                <rect x="160" y="50"  width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="68">DRAM die 7  (24 Gb)</text>
                 <text x="540" y="68" text-anchor="end">top</text>
 
-                <rect x="160" y="80"  width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="80"  width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="98">DRAM die 6  (24 Gb)</text>
 
-                <rect x="160" y="110" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="110" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="128">DRAM die 5  (24 Gb)</text>
 
-                <rect x="160" y="140" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="140" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="158">DRAM die 4  (24 Gb)</text>
 
-                <rect x="160" y="170" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="170" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="188">DRAM die 3  (24 Gb)</text>
 
-                <rect x="160" y="200" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="200" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="218">DRAM die 2  (24 Gb)</text>
 
-                <rect x="160" y="230" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="230" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="248">DRAM die 1  (24 Gb)</text>
 
-                <rect x="160" y="260" width="400" height="28" fill="url(#dieGrad)" stroke="#21262d"/>
+                <rect x="160" y="260" width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="278">DRAM die 0  (24 Gb)</text>
             </g>
 
             <!-- Base / buffer die -->
-            <rect x="160" y="290" width="400" height="34" fill="url(#baseGrad)" stroke="#76B900"/>
-            <text x="170" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#76B900">Base / buffer die  (PHY, ECC, refresh FSM, repair)</text>
+            <rect x="160" y="290" width="400" height="34" fill="url(#baseGrad)" stroke="#b8b315"/>
+            <text x="170" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#b8b315">Base / buffer die  (PHY, ECC, refresh FSM, repair)</text>
 
             <!-- Micro-bumps -->
-            <g fill="#76B900">
+            <g fill="#b8b315">
                 <circle cx="180" cy="332" r="3"/><circle cx="200" cy="332" r="3"/><circle cx="220" cy="332" r="3"/>
                 <circle cx="240" cy="332" r="3"/><circle cx="260" cy="332" r="3"/><circle cx="280" cy="332" r="3"/>
                 <circle cx="300" cy="332" r="3"/><circle cx="320" cy="332" r="3"/><circle cx="340" cy="332" r="3"/>
@@ -922,18 +922,18 @@
                 <circle cx="480" cy="332" r="3"/><circle cx="500" cy="332" r="3"/><circle cx="520" cy="332" r="3"/>
                 <circle cx="540" cy="332" r="3"/>
             </g>
-            <text x="600" y="335" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">&micro;-bumps  (~55 &micro;m pitch)</text>
+            <text x="600" y="335" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">&micro;-bumps  (~55 &micro;m pitch)</text>
 
             <!-- Silicon interposer -->
-            <rect x="40" y="345" width="640" height="40" fill="url(#interGrad)" stroke="#3a4a5a"/>
-            <text x="50" y="370" font-family="JetBrains Mono, monospace" font-size="11" fill="#e6edf3">Silicon interposer  (TSV grid + RDL routing)</text>
+            <rect x="40" y="345" width="640" height="40" fill="url(#interGrad)" stroke="#4d4d49"/>
+            <text x="50" y="370" font-family="JetBrains Mono, monospace" font-size="11" fill="#edede7">Silicon interposer  (TSV grid + RDL routing)</text>
 
             <!-- GPU die on the interposer (right side) -->
-            <rect x="580" y="305" width="90" height="40" fill="#1a2330" stroke="#76B900"/>
-            <text x="625" y="330" font-family="JetBrains Mono, monospace" font-size="11" fill="#76B900" text-anchor="middle">GPU die</text>
+            <rect x="580" y="305" width="90" height="40" fill="#323230" stroke="#b8b315"/>
+            <text x="625" y="330" font-family="JetBrains Mono, monospace" font-size="11" fill="#b8b315" text-anchor="middle">GPU die</text>
 
             <!-- C4 bumps -->
-            <g fill="#8b949e">
+            <g fill="#9b9b95">
                 <circle cx="80" cy="392" r="4"/><circle cx="120" cy="392" r="4"/><circle cx="160" cy="392" r="4"/>
                 <circle cx="200" cy="392" r="4"/><circle cx="240" cy="392" r="4"/><circle cx="280" cy="392" r="4"/>
                 <circle cx="320" cy="392" r="4"/><circle cx="360" cy="392" r="4"/><circle cx="400" cy="392" r="4"/>
@@ -942,11 +942,11 @@
             </g>
 
             <!-- Substrate -->
-            <rect x="20" y="400" width="680" height="30" fill="#0d1117" stroke="#21262d"/>
-            <text x="30" y="420" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b949e">Organic package substrate</text>
+            <rect x="20" y="400" width="680" height="30" fill="#212120" stroke="#363633"/>
+            <text x="30" y="420" font-family="JetBrains Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate</text>
 
             <!-- TSVs through stack -->
-            <g stroke="#76B900" stroke-width="1.2" opacity="0.65">
+            <g stroke="#b8b315" stroke-width="1.2" opacity="0.65">
                 <line x1="200" y1="50" x2="200" y2="290"/>
                 <line x1="240" y1="50" x2="240" y2="290"/>
                 <line x1="280" y1="50" x2="280" y2="290"/>
@@ -959,15 +959,15 @@
             </g>
 
             <!-- TSV callout -->
-            <line x1="120" y1="170" x2="155" y2="170" stroke="#76B900" stroke-width="1"/>
-            <text x="20" y="174" font-family="JetBrains Mono, monospace" font-size="10" fill="#76B900">TSVs &times;1024+</text>
+            <line x1="120" y1="170" x2="155" y2="170" stroke="#b8b315" stroke-width="1"/>
+            <text x="20" y="174" font-family="JetBrains Mono, monospace" font-size="10" fill="#b8b315">TSVs &times;1024+</text>
 
             <!-- Stack height callout -->
-            <line x1="585" y1="50" x2="585" y2="324" stroke="#8b949e" stroke-dasharray="3,3"/>
-            <text x="595" y="190" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">~720 &micro;m</text>
+            <line x1="585" y1="50" x2="585" y2="324" stroke="#9b9b95" stroke-dasharray="3,3"/>
+            <text x="595" y="190" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">~720 &micro;m</text>
 
             <!-- Right side label -->
-            <text x="360" y="450" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e" text-anchor="middle">Vertical scale exaggerated &mdash; horizontal not to scale</text>
+            <text x="360" y="450" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale exaggerated &mdash; horizontal not to scale</text>
         </svg>
     </div>
 
@@ -1170,27 +1170,27 @@
     <div class="tier-visual">
         <div class="tier-bar">
             <div class="tier-label">V100</div>
-            <div class="tier-fill" style="width: 9%; background: rgba(118,185,0,0.3); color: var(--text-primary);">0.9 TB/s</div>
+            <div class="tier-fill" style="width: 9%; background: rgba(184,179,21,0.3); color: var(--text-primary);">0.9 TB/s</div>
             <div class="tier-cost">HBM2 &times;4</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">A100</div>
-            <div class="tier-fill" style="width: 21%; background: rgba(118,185,0,0.4); color: var(--text-primary);">2.04 TB/s</div>
+            <div class="tier-fill" style="width: 21%; background: rgba(184,179,21,0.4); color: var(--text-primary);">2.04 TB/s</div>
             <div class="tier-cost">HBM2e &times;5</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">H100</div>
-            <div class="tier-fill" style="width: 35%; background: rgba(118,185,0,0.55); color: var(--text-primary);">3.35 TB/s</div>
+            <div class="tier-fill" style="width: 35%; background: rgba(184,179,21,0.55); color: var(--text-primary);">3.35 TB/s</div>
             <div class="tier-cost">HBM3 &times;5</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">H200</div>
-            <div class="tier-fill" style="width: 50%; background: rgba(118,185,0,0.7); color: var(--text-primary);">4.8 TB/s</div>
+            <div class="tier-fill" style="width: 50%; background: rgba(184,179,21,0.7); color: var(--text-primary);">4.8 TB/s</div>
             <div class="tier-cost">HBM3e &times;6</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">B200</div>
-            <div class="tier-fill" style="width: 84%; background: rgba(118,185,0,0.85); color: #0a0a0a;">8 TB/s</div>
+            <div class="tier-fill" style="width: 84%; background: rgba(184,179,21,0.85); color: #1b1b1a;">8 TB/s</div>
             <div class="tier-cost">HBM3e &times;8</div>
         </div>
     </div>
@@ -1364,53 +1364,53 @@ memory.total [MiB]
         <svg viewBox="0 0 720 340" width="720" height="340" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="phyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.18"/>
-                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.04"/>
+                    <stop offset="0%" stop-color="#b8b315" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="#b8b315" stop-opacity="0.04"/>
                 </linearGradient>
             </defs>
 
-            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e PHY block on the GPU side</text>
+            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e PHY block on the GPU side</text>
 
             <!-- Outer PHY box -->
-            <rect x="40" y="40" width="640" height="280" fill="url(#phyGrad)" stroke="#76B900" stroke-width="1.5" rx="6"/>
-            <text x="60" y="60" fill="#76B900" font-family="JetBrains Mono, monospace" font-size="11">HBM3e PHY  &mdash;  ~24 mm&sup2; per stack interface</text>
+            <rect x="40" y="40" width="640" height="280" fill="url(#phyGrad)" stroke="#b8b315" stroke-width="1.5" rx="6"/>
+            <text x="60" y="60" fill="#b8b315" font-family="JetBrains Mono, monospace" font-size="11">HBM3e PHY  &mdash;  ~24 mm&sup2; per stack interface</text>
 
             <!-- Sub-blocks -->
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3">
+            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7">
                 <!-- C/A path -->
-                <rect x="60" y="80" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="60" y="80" width="180" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="150" y="105" text-anchor="middle">Command / Address</text>
-                <text x="150" y="120" text-anchor="middle" fill="#8b949e">SDR, ~1.5 Gb/s</text>
+                <text x="150" y="120" text-anchor="middle" fill="#9b9b95">SDR, ~1.5 Gb/s</text>
 
                 <!-- Data path -->
-                <rect x="260" y="80" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="260" y="80" width="180" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="350" y="105" text-anchor="middle">Data SerDes</text>
-                <text x="350" y="120" text-anchor="middle" fill="#8b949e">DDR, 9.2&ndash;9.6 Gb/s/pin</text>
+                <text x="350" y="120" text-anchor="middle" fill="#9b9b95">DDR, 9.2&ndash;9.6 Gb/s/pin</text>
 
                 <!-- Training -->
-                <rect x="460" y="80" width="200" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="460" y="80" width="200" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="560" y="105" text-anchor="middle">Training / Eq</text>
-                <text x="560" y="120" text-anchor="middle" fill="#8b949e">DFE, CTLE, deskew</text>
+                <text x="560" y="120" text-anchor="middle" fill="#9b9b95">DFE, CTLE, deskew</text>
 
                 <!-- ECC encode/decode -->
-                <rect x="60" y="160" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="60" y="160" width="180" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="150" y="185" text-anchor="middle">ECC encode/decode</text>
-                <text x="150" y="200" text-anchor="middle" fill="#8b949e">side-band + in-line</text>
+                <text x="150" y="200" text-anchor="middle" fill="#9b9b95">side-band + in-line</text>
 
                 <!-- CRC -->
-                <rect x="260" y="160" width="180" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="260" y="160" width="180" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="350" y="185" text-anchor="middle">CRC engine</text>
-                <text x="350" y="200" text-anchor="middle" fill="#8b949e">retry on bus errors</text>
+                <text x="350" y="200" text-anchor="middle" fill="#9b9b95">retry on bus errors</text>
 
                 <!-- Repair / spare -->
-                <rect x="460" y="160" width="200" height="50" fill="#161b22" stroke="#21262d" rx="4"/>
+                <rect x="460" y="160" width="200" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="560" y="185" text-anchor="middle">Lane repair / row remap</text>
-                <text x="560" y="200" text-anchor="middle" fill="#8b949e">spare lanes, soft-repair</text>
+                <text x="560" y="200" text-anchor="middle" fill="#9b9b95">spare lanes, soft-repair</text>
 
                 <!-- I/O drivers -->
-                <rect x="60" y="240" width="600" height="60" fill="#0d1117" stroke="#21262d" rx="4"/>
-                <text x="360" y="265" text-anchor="middle" fill="#76B900">I/O driver array  &mdash;  1024 data + ~200 C/A lines &times; 5&ndash;8 stacks per GPU</text>
-                <text x="360" y="285" text-anchor="middle" fill="#8b949e">Termination (ODT), VREF, VPP, VDDQ regulation</text>
+                <rect x="60" y="240" width="600" height="60" fill="#212120" stroke="#363633" rx="4"/>
+                <text x="360" y="265" text-anchor="middle" fill="#b8b315">I/O driver array  &mdash;  1024 data + ~200 C/A lines &times; 5&ndash;8 stacks per GPU</text>
+                <text x="360" y="285" text-anchor="middle" fill="#9b9b95">Termination (ODT), VREF, VPP, VDDQ regulation</text>
             </g>
         </svg>
     </div>
@@ -1444,57 +1444,57 @@ memory.total [MiB]
         <svg viewBox="0 0 720 380" width="720" height="380" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="cowosBase" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#0d1117"/>
-                    <stop offset="100%" stop-color="#161b22"/>
+                    <stop offset="0%" stop-color="#212120"/>
+                    <stop offset="100%" stop-color="#292928"/>
                 </linearGradient>
                 <linearGradient id="cowosGpu" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#76B900" stop-opacity="0.25"/>
-                    <stop offset="100%" stop-color="#76B900" stop-opacity="0.08"/>
+                    <stop offset="0%" stop-color="#b8b315" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="#b8b315" stop-opacity="0.08"/>
                 </linearGradient>
                 <linearGradient id="cowosHbm" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#3a4a5a"/>
-                    <stop offset="100%" stop-color="#1a2330"/>
+                    <stop offset="0%" stop-color="#4d4d49"/>
+                    <stop offset="100%" stop-color="#323230"/>
                 </linearGradient>
             </defs>
 
-            <text x="360" y="22" fill="#e6edf3" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">CoWoS-L cross-section &mdash; Blackwell-class GPU + 8 HBM stacks</text>
+            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">CoWoS-L cross-section &mdash; Blackwell-class GPU + 8 HBM stacks</text>
 
             <!-- Heatsink lid -->
-            <rect x="40" y="40" width="640" height="20" fill="#5a6a7a" stroke="#3a4a5a"/>
-            <text x="50" y="55" font-family="JetBrains Mono, monospace" font-size="10" fill="#0d1117">Integrated heat spreader / lid (Cu-Ni)</text>
+            <rect x="40" y="40" width="640" height="20" fill="#60605b" stroke="#4d4d49"/>
+            <text x="50" y="55" font-family="JetBrains Mono, monospace" font-size="10" fill="#212120">Integrated heat spreader / lid (Cu-Ni)</text>
 
             <!-- TIM gap -->
-            <rect x="40" y="60" width="640" height="6" fill="#2a1b1b"/>
-            <text x="50" y="74" font-family="JetBrains Mono, monospace" font-size="9" fill="#8b949e">TIM (indium / liquid metal)</text>
+            <rect x="40" y="60" width="640" height="6" fill="#322d2b"/>
+            <text x="50" y="74" font-family="JetBrains Mono, monospace" font-size="9" fill="#9b9b95">TIM (indium / liquid metal)</text>
 
             <!-- HBM stacks left -->
-            <rect x="60" y="80"  width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
-            <text x="100" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
-            <text x="100" y="148" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">stack</text>
+            <rect x="60" y="80"  width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
+            <text x="100" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
+            <text x="100" y="148" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">stack</text>
 
-            <rect x="150" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
-            <text x="190" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+            <rect x="150" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
+            <text x="190" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
-            <rect x="240" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
-            <text x="280" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+            <rect x="240" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
+            <text x="280" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
-            <rect x="330" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#21262d"/>
-            <text x="370" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#e6edf3" text-anchor="middle">HBM</text>
+            <rect x="330" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
+            <text x="370" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
             <!-- GPU dies (dual) -->
-            <rect x="420" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#76B900"/>
-            <text x="480" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#76B900" text-anchor="middle" font-weight="700">GPU die A</text>
-            <text x="480" y="145" font-family="JetBrains Mono, monospace" font-size="9" fill="#76B900" text-anchor="middle">~830 mm&sup2;</text>
+            <rect x="420" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#b8b315"/>
+            <text x="480" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die A</text>
+            <text x="480" y="145" font-family="JetBrains Mono, monospace" font-size="9" fill="#b8b315" text-anchor="middle">~830 mm&sup2;</text>
 
-            <rect x="545" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#76B900"/>
-            <text x="605" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#76B900" text-anchor="middle" font-weight="700">GPU die B</text>
+            <rect x="545" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#b8b315"/>
+            <text x="605" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die B</text>
 
             <!-- NV-HBI bridge die between the two GPUs -->
-            <rect x="538" y="180" width="14" height="20" fill="#ffa657" stroke="#7a5a3a"/>
-            <text x="545" y="218" font-family="JetBrains Mono, monospace" font-size="9" fill="#ffa657" text-anchor="middle">NV-HBI</text>
+            <rect x="538" y="180" width="14" height="20" fill="#e0b172" stroke="#65543b"/>
+            <text x="545" y="218" font-family="JetBrains Mono, monospace" font-size="9" fill="#e0b172" text-anchor="middle">NV-HBI</text>
 
             <!-- Micro-bumps -->
-            <g fill="#76B900">
+            <g fill="#b8b315">
                 <circle cx="80"  cy="186" r="2.5"/><circle cx="100" cy="186" r="2.5"/><circle cx="120" cy="186" r="2.5"/>
                 <circle cx="170" cy="186" r="2.5"/><circle cx="190" cy="186" r="2.5"/><circle cx="210" cy="186" r="2.5"/>
                 <circle cx="260" cy="186" r="2.5"/><circle cx="280" cy="186" r="2.5"/><circle cx="300" cy="186" r="2.5"/>
@@ -1504,17 +1504,17 @@ memory.total [MiB]
             </g>
 
             <!-- Silicon interposer / LSI bridges -->
-            <rect x="40" y="195" width="640" height="40" fill="#1f2a36" stroke="#3a4a5a"/>
-            <text x="50" y="218" font-family="JetBrains Mono, monospace" font-size="11" fill="#e6edf3">Silicon interposer (CoWoS-L)</text>
+            <rect x="40" y="195" width="640" height="40" fill="#3a3a37" stroke="#4d4d49"/>
+            <text x="50" y="218" font-family="JetBrains Mono, monospace" font-size="11" fill="#edede7">Silicon interposer (CoWoS-L)</text>
             <!-- LSI bridges drawn as smaller rectangles -->
-            <rect x="115" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
-            <rect x="205" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
-            <rect x="295" y="200" width="75" height="14" fill="#ffa657" opacity="0.55"/>
-            <rect x="385" y="200" width="105" height="14" fill="#ffa657" opacity="0.55"/>
-            <text x="430" y="232" font-family="JetBrains Mono, monospace" font-size="9" fill="#ffa657">LSI bridges (Local Si Interconnect)</text>
+            <rect x="115" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
+            <rect x="205" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
+            <rect x="295" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
+            <rect x="385" y="200" width="105" height="14" fill="#e0b172" opacity="0.55"/>
+            <text x="430" y="232" font-family="JetBrains Mono, monospace" font-size="9" fill="#e0b172">LSI bridges (Local Si Interconnect)</text>
 
             <!-- C4 bumps -->
-            <g fill="#8b949e">
+            <g fill="#9b9b95">
                 <circle cx="70"  cy="245" r="3"/><circle cx="120" cy="245" r="3"/><circle cx="180" cy="245" r="3"/>
                 <circle cx="240" cy="245" r="3"/><circle cx="300" cy="245" r="3"/><circle cx="360" cy="245" r="3"/>
                 <circle cx="420" cy="245" r="3"/><circle cx="480" cy="245" r="3"/><circle cx="540" cy="245" r="3"/>
@@ -1522,19 +1522,19 @@ memory.total [MiB]
             </g>
 
             <!-- Substrate -->
-            <rect x="20" y="252" width="680" height="50" fill="url(#cowosBase)" stroke="#21262d"/>
-            <text x="30" y="280" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b949e">Organic package substrate (build-up layers + core)</text>
+            <rect x="20" y="252" width="680" height="50" fill="url(#cowosBase)" stroke="#363633"/>
+            <text x="30" y="280" font-family="JetBrains Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate (build-up layers + core)</text>
 
             <!-- BGA balls -->
-            <g fill="#bdc3cf">
+            <g fill="#cacac3">
                 <circle cx="60"  cy="320" r="6"/><circle cx="120" cy="320" r="6"/><circle cx="180" cy="320" r="6"/>
                 <circle cx="240" cy="320" r="6"/><circle cx="300" cy="320" r="6"/><circle cx="360" cy="320" r="6"/>
                 <circle cx="420" cy="320" r="6"/><circle cx="480" cy="320" r="6"/><circle cx="540" cy="320" r="6"/>
                 <circle cx="600" cy="320" r="6"/><circle cx="660" cy="320" r="6"/>
             </g>
-            <text x="30" y="343" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e">BGA ball-grid mounting to OAM / SXM5 board</text>
+            <text x="30" y="343" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">BGA ball-grid mounting to OAM / SXM5 board</text>
 
-            <text x="360" y="372" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b949e" text-anchor="middle">Vertical scale heavily exaggerated</text>
+            <text x="360" y="372" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale heavily exaggerated</text>
         </svg>
     </div>
 
@@ -1597,37 +1597,37 @@ memory.total [MiB]
     <div class="tier-visual">
         <div class="tier-bar">
             <div class="tier-label">Spec peak</div>
-            <div class="tier-fill" style="width: 100%; background: rgba(118,185,0,0.85); color: #0a0a0a;">100% &mdash; 4.8 TB/s on H200 spec</div>
+            <div class="tier-fill" style="width: 100%; background: rgba(184,179,21,0.85); color: #1b1b1a;">100% &mdash; 4.8 TB/s on H200 spec</div>
             <div class="tier-cost">peak</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">- refresh</div>
-            <div class="tier-fill" style="width: 97%; background: rgba(118,185,0,0.75); color: #0a0a0a;">~97% &mdash; refresh tax 2&ndash;3% cool</div>
+            <div class="tier-fill" style="width: 97%; background: rgba(184,179,21,0.75); color: #1b1b1a;">~97% &mdash; refresh tax 2&ndash;3% cool</div>
             <div class="tier-cost">-2&ndash;3%</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">- ECC sb</div>
-            <div class="tier-fill" style="width: 91%; background: rgba(118,185,0,0.65); color: #0a0a0a;">~91% &mdash; side-band ECC overhead</div>
+            <div class="tier-fill" style="width: 91%; background: rgba(184,179,21,0.65); color: #1b1b1a;">~91% &mdash; side-band ECC overhead</div>
             <div class="tier-cost">-6%</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">- thermal</div>
-            <div class="tier-fill" style="width: 86%; background: rgba(118,185,0,0.55); color: var(--text-primary);">~86% &mdash; warm operation</div>
+            <div class="tier-fill" style="width: 86%; background: rgba(184,179,21,0.55); color: var(--text-primary);">~86% &mdash; warm operation</div>
             <div class="tier-cost">-5%</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">streaming</div>
-            <div class="tier-fill" style="width: 82%; background: rgba(118,185,0,0.5); color: var(--text-primary);">~82% achieved &mdash; ~3.9 TB/s</div>
+            <div class="tier-fill" style="width: 82%; background: rgba(184,179,21,0.5); color: var(--text-primary);">~82% achieved &mdash; ~3.9 TB/s</div>
             <div class="tier-cost">good</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">strided 128B</div>
-            <div class="tier-fill" style="width: 65%; background: rgba(255,166,87,0.5); color: var(--text-primary);">~65% achieved &mdash; ~3.1 TB/s</div>
+            <div class="tier-fill" style="width: 65%; background: rgba(224,177,114,0.5); color: var(--text-primary);">~65% achieved &mdash; ~3.1 TB/s</div>
             <div class="tier-cost">ok</div>
         </div>
         <div class="tier-bar">
             <div class="tier-label">random 32B</div>
-            <div class="tier-fill" style="width: 30%; background: rgba(255,123,114,0.55); color: var(--text-primary);">~30% achieved &mdash; ~1.4 TB/s</div>
+            <div class="tier-fill" style="width: 30%; background: rgba(229,125,99,0.55); color: var(--text-primary);">~30% achieved &mdash; ~1.4 TB/s</div>
             <div class="tier-cost">bad</div>
         </div>
     </div>
