@@ -6,7 +6,7 @@
     <title>NVIDIA GPU 23 — HBM Internals: Stacks, Channels, Packaging</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;1,400;1,700&family=Roboto+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #1b1b1a;
@@ -18,9 +18,9 @@
             --accent-dim: #b8b31544;
             --accent-glow: #b8b31533;
             --border: #363633;
-            --font-display: 'Space Grotesk', sans-serif;
-            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-            --font-body: 'Inter', sans-serif;
+            --font-display: 'Chakra Petch', sans-serif;
+            --font-mono: 'Roboto Mono', 'Roboto Mono', monospace;
+            --font-body: 'Titillium Web', sans-serif;
             --max-width: 900px;
         }
 
@@ -878,10 +878,10 @@
             </defs>
 
             <!-- Stack label -->
-            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e Stack &mdash; Cross-Section</text>
+            <text x="360" y="22" fill="#edede7" font-family="Chakra Petch, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e Stack &mdash; Cross-Section</text>
 
             <!-- 8 DRAM dies -->
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">
+            <g font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95">
                 <rect x="160" y="50"  width="400" height="28" fill="url(#dieGrad)" stroke="#363633"/>
                 <text x="170" y="68">DRAM die 7  (24 Gb)</text>
                 <text x="540" y="68" text-anchor="end">top</text>
@@ -910,7 +910,7 @@
 
             <!-- Base / buffer die -->
             <rect x="160" y="290" width="400" height="34" fill="url(#baseGrad)" stroke="#b8b315"/>
-            <text x="170" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#b8b315">Base / buffer die  (PHY, ECC, refresh FSM, repair)</text>
+            <text x="170" y="312" font-family="Roboto Mono, monospace" font-size="10" fill="#b8b315">Base / buffer die  (PHY, ECC, refresh FSM, repair)</text>
 
             <!-- Micro-bumps -->
             <g fill="#b8b315">
@@ -922,15 +922,15 @@
                 <circle cx="480" cy="332" r="3"/><circle cx="500" cy="332" r="3"/><circle cx="520" cy="332" r="3"/>
                 <circle cx="540" cy="332" r="3"/>
             </g>
-            <text x="600" y="335" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">&micro;-bumps  (~55 &micro;m pitch)</text>
+            <text x="600" y="335" font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95">&micro;-bumps  (~55 &micro;m pitch)</text>
 
             <!-- Silicon interposer -->
             <rect x="40" y="345" width="640" height="40" fill="url(#interGrad)" stroke="#4d4d49"/>
-            <text x="50" y="370" font-family="JetBrains Mono, monospace" font-size="11" fill="#edede7">Silicon interposer  (TSV grid + RDL routing)</text>
+            <text x="50" y="370" font-family="Roboto Mono, monospace" font-size="11" fill="#edede7">Silicon interposer  (TSV grid + RDL routing)</text>
 
             <!-- GPU die on the interposer (right side) -->
             <rect x="580" y="305" width="90" height="40" fill="#323230" stroke="#b8b315"/>
-            <text x="625" y="330" font-family="JetBrains Mono, monospace" font-size="11" fill="#b8b315" text-anchor="middle">GPU die</text>
+            <text x="625" y="330" font-family="Roboto Mono, monospace" font-size="11" fill="#b8b315" text-anchor="middle">GPU die</text>
 
             <!-- C4 bumps -->
             <g fill="#9b9b95">
@@ -943,7 +943,7 @@
 
             <!-- Substrate -->
             <rect x="20" y="400" width="680" height="30" fill="#212120" stroke="#363633"/>
-            <text x="30" y="420" font-family="JetBrains Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate</text>
+            <text x="30" y="420" font-family="Roboto Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate</text>
 
             <!-- TSVs through stack -->
             <g stroke="#b8b315" stroke-width="1.2" opacity="0.65">
@@ -960,14 +960,14 @@
 
             <!-- TSV callout -->
             <line x1="120" y1="170" x2="155" y2="170" stroke="#b8b315" stroke-width="1"/>
-            <text x="20" y="174" font-family="JetBrains Mono, monospace" font-size="10" fill="#b8b315">TSVs &times;1024+</text>
+            <text x="20" y="174" font-family="Roboto Mono, monospace" font-size="10" fill="#b8b315">TSVs &times;1024+</text>
 
             <!-- Stack height callout -->
             <line x1="585" y1="50" x2="585" y2="324" stroke="#9b9b95" stroke-dasharray="3,3"/>
-            <text x="595" y="190" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">~720 &micro;m</text>
+            <text x="595" y="190" font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95">~720 &micro;m</text>
 
             <!-- Right side label -->
-            <text x="360" y="450" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale exaggerated &mdash; horizontal not to scale</text>
+            <text x="360" y="450" font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale exaggerated &mdash; horizontal not to scale</text>
         </svg>
     </div>
 
@@ -1369,14 +1369,14 @@ memory.total [MiB]
                 </linearGradient>
             </defs>
 
-            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e PHY block on the GPU side</text>
+            <text x="360" y="22" fill="#edede7" font-family="Chakra Petch, sans-serif" font-size="14" text-anchor="middle" font-weight="700">HBM3e PHY block on the GPU side</text>
 
             <!-- Outer PHY box -->
             <rect x="40" y="40" width="640" height="280" fill="url(#phyGrad)" stroke="#b8b315" stroke-width="1.5" rx="6"/>
-            <text x="60" y="60" fill="#b8b315" font-family="JetBrains Mono, monospace" font-size="11">HBM3e PHY  &mdash;  ~24 mm&sup2; per stack interface</text>
+            <text x="60" y="60" fill="#b8b315" font-family="Roboto Mono, monospace" font-size="11">HBM3e PHY  &mdash;  ~24 mm&sup2; per stack interface</text>
 
             <!-- Sub-blocks -->
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7">
+            <g font-family="Roboto Mono, monospace" font-size="10" fill="#edede7">
                 <!-- C/A path -->
                 <rect x="60" y="80" width="180" height="50" fill="#292928" stroke="#363633" rx="4"/>
                 <text x="150" y="105" text-anchor="middle">Command / Address</text>
@@ -1457,41 +1457,41 @@ memory.total [MiB]
                 </linearGradient>
             </defs>
 
-            <text x="360" y="22" fill="#edede7" font-family="Space Grotesk, sans-serif" font-size="14" text-anchor="middle" font-weight="700">CoWoS-L cross-section &mdash; Blackwell-class GPU + 8 HBM stacks</text>
+            <text x="360" y="22" fill="#edede7" font-family="Chakra Petch, sans-serif" font-size="14" text-anchor="middle" font-weight="700">CoWoS-L cross-section &mdash; Blackwell-class GPU + 8 HBM stacks</text>
 
             <!-- Heatsink lid -->
             <rect x="40" y="40" width="640" height="20" fill="#60605b" stroke="#4d4d49"/>
-            <text x="50" y="55" font-family="JetBrains Mono, monospace" font-size="10" fill="#212120">Integrated heat spreader / lid (Cu-Ni)</text>
+            <text x="50" y="55" font-family="Roboto Mono, monospace" font-size="10" fill="#212120">Integrated heat spreader / lid (Cu-Ni)</text>
 
             <!-- TIM gap -->
             <rect x="40" y="60" width="640" height="6" fill="#322d2b"/>
-            <text x="50" y="74" font-family="JetBrains Mono, monospace" font-size="9" fill="#9b9b95">TIM (indium / liquid metal)</text>
+            <text x="50" y="74" font-family="Roboto Mono, monospace" font-size="9" fill="#9b9b95">TIM (indium / liquid metal)</text>
 
             <!-- HBM stacks left -->
             <rect x="60" y="80"  width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
-            <text x="100" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
-            <text x="100" y="148" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">stack</text>
+            <text x="100" y="135" font-family="Roboto Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
+            <text x="100" y="148" font-family="Roboto Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">stack</text>
 
             <rect x="150" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
-            <text x="190" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
+            <text x="190" y="135" font-family="Roboto Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
             <rect x="240" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
-            <text x="280" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
+            <text x="280" y="135" font-family="Roboto Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
             <rect x="330" y="80" width="80" height="100" fill="url(#cowosHbm)" stroke="#363633"/>
-            <text x="370" y="135" font-family="JetBrains Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
+            <text x="370" y="135" font-family="Roboto Mono, monospace" font-size="10" fill="#edede7" text-anchor="middle">HBM</text>
 
             <!-- GPU dies (dual) -->
             <rect x="420" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#b8b315"/>
-            <text x="480" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die A</text>
-            <text x="480" y="145" font-family="JetBrains Mono, monospace" font-size="9" fill="#b8b315" text-anchor="middle">~830 mm&sup2;</text>
+            <text x="480" y="125" font-family="Chakra Petch, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die A</text>
+            <text x="480" y="145" font-family="Roboto Mono, monospace" font-size="9" fill="#b8b315" text-anchor="middle">~830 mm&sup2;</text>
 
             <rect x="545" y="80" width="120" height="100" fill="url(#cowosGpu)" stroke="#b8b315"/>
-            <text x="605" y="125" font-family="Space Grotesk, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die B</text>
+            <text x="605" y="125" font-family="Chakra Petch, sans-serif" font-size="12" fill="#b8b315" text-anchor="middle" font-weight="700">GPU die B</text>
 
             <!-- NV-HBI bridge die between the two GPUs -->
             <rect x="538" y="180" width="14" height="20" fill="#e0b172" stroke="#65543b"/>
-            <text x="545" y="218" font-family="JetBrains Mono, monospace" font-size="9" fill="#e0b172" text-anchor="middle">NV-HBI</text>
+            <text x="545" y="218" font-family="Roboto Mono, monospace" font-size="9" fill="#e0b172" text-anchor="middle">NV-HBI</text>
 
             <!-- Micro-bumps -->
             <g fill="#b8b315">
@@ -1505,13 +1505,13 @@ memory.total [MiB]
 
             <!-- Silicon interposer / LSI bridges -->
             <rect x="40" y="195" width="640" height="40" fill="#3a3a37" stroke="#4d4d49"/>
-            <text x="50" y="218" font-family="JetBrains Mono, monospace" font-size="11" fill="#edede7">Silicon interposer (CoWoS-L)</text>
+            <text x="50" y="218" font-family="Roboto Mono, monospace" font-size="11" fill="#edede7">Silicon interposer (CoWoS-L)</text>
             <!-- LSI bridges drawn as smaller rectangles -->
             <rect x="115" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
             <rect x="205" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
             <rect x="295" y="200" width="75" height="14" fill="#e0b172" opacity="0.55"/>
             <rect x="385" y="200" width="105" height="14" fill="#e0b172" opacity="0.55"/>
-            <text x="430" y="232" font-family="JetBrains Mono, monospace" font-size="9" fill="#e0b172">LSI bridges (Local Si Interconnect)</text>
+            <text x="430" y="232" font-family="Roboto Mono, monospace" font-size="9" fill="#e0b172">LSI bridges (Local Si Interconnect)</text>
 
             <!-- C4 bumps -->
             <g fill="#9b9b95">
@@ -1523,7 +1523,7 @@ memory.total [MiB]
 
             <!-- Substrate -->
             <rect x="20" y="252" width="680" height="50" fill="url(#cowosBase)" stroke="#363633"/>
-            <text x="30" y="280" font-family="JetBrains Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate (build-up layers + core)</text>
+            <text x="30" y="280" font-family="Roboto Mono, monospace" font-size="11" fill="#9b9b95">Organic package substrate (build-up layers + core)</text>
 
             <!-- BGA balls -->
             <g fill="#cacac3">
@@ -1532,9 +1532,9 @@ memory.total [MiB]
                 <circle cx="420" cy="320" r="6"/><circle cx="480" cy="320" r="6"/><circle cx="540" cy="320" r="6"/>
                 <circle cx="600" cy="320" r="6"/><circle cx="660" cy="320" r="6"/>
             </g>
-            <text x="30" y="343" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95">BGA ball-grid mounting to OAM / SXM5 board</text>
+            <text x="30" y="343" font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95">BGA ball-grid mounting to OAM / SXM5 board</text>
 
-            <text x="360" y="372" font-family="JetBrains Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale heavily exaggerated</text>
+            <text x="360" y="372" font-family="Roboto Mono, monospace" font-size="10" fill="#9b9b95" text-anchor="middle">Vertical scale heavily exaggerated</text>
         </svg>
     </div>
 
