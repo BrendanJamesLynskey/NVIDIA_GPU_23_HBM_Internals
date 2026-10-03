@@ -852,7 +852,7 @@
         <div class="diagram-box dim">1&times; HBM3 stack</div>
     </div>
 
-    <p>The HBM trade is paid in <strong>silicon interposer area</strong>. The 2.5D substrate carrying GPU + HBM stacks is itself a wafer-fabbed silicon die, with thousands of fine-pitch traces routed at near-on-die density. Yield falls with area, the reticle limit (~830 mm&sup2;) caps how big it can be, and supplier capacity (TSMC CoWoS) is currently the binding constraint on HBM-class GPU production.</p>
+    <p>The HBM trade is paid in <strong>silicon interposer area</strong>. The 2.5D substrate carrying GPU + HBM stacks is itself a wafer-fabbed silicon die, with thousands of fine-pitch traces routed at near-on-die density. Yield falls with area, its size is capped at a few reticle fields (CoWoS-S reaches ~3&times; reticle), and supplier capacity (TSMC CoWoS) is currently the binding constraint on HBM-class GPU production.</p>
 </section>
 
 <section class="slide" id="slide-02">
@@ -1217,7 +1217,7 @@
             <h4>2. Side-band ECC</h4>
             <p>Classic GDDR/HBM ECC mode. The DRAM controller sends an extra ECC code over a <em>separate</em> ECC channel (extra DQ pins) alongside the data.</p>
             <ul>
-                <li>Cost: <strong>~6% bandwidth + 6% capacity</strong></li>
+                <li>Cost: <strong>no user bandwidth or capacity</strong> &mdash; the ECC bits travel on extra pins and live in a separate region (in-line GDDR ECC is what costs ~6.25%)</li>
                 <li>Catches: bus errors, multi-bit faults that escaped on-die ECC</li>
                 <li>Default ON for datacenter (H100/H200/B200), OFF for consumer (RTX)</li>
             </ul>
@@ -1259,7 +1259,7 @@ GPU 00000000:01:00.0
 
     <h3>Disabling ECC on inference-only hosts</h3>
     <div class="code-block">
-        <div class="code-header">Reclaiming the ~6% capacity</div>
+        <div class="code-header">Turning ECC off (no capacity is reclaimed on HBM)</div>
         <pre><code><span class="cm"># list current state</span>
 $ nvidia-smi -q -d ECC | grep -A1 "ECC Mode"
 
@@ -1267,10 +1267,10 @@ $ nvidia-smi -q -d ECC | grep -A1 "ECC Mode"
 $ sudo nvidia-smi -e <span class="num">0</span>
 $ sudo reboot
 
-<span class="cm"># after reboot, an H100 80GB reports ~85.5 GiB usable instead of ~80 GiB</span>
+<span class="cm"># after reboot, an H100 80GB still reports the same capacity: HBM ECC is side-band</span>
 $ nvidia-smi --query-gpu=memory.total --format=csv
 memory.total [MiB]
-<span class="num">87559</span> MiB
+<span class="num">81559</span> MiB
 </code></pre>
     </div>
 
@@ -1591,7 +1591,7 @@ memory.total [MiB]
 <section class="slide" id="slide-10">
     <div class="slide-number">10</div>
     <h2>What You Actually Get vs Spec Sheet</h2>
-    <p>The spec-sheet number is a peak: 1024 b &times; 9.2 Gb/s/pin / 8 = ~1.18 TB/s/stack, &times;6 stacks = ~7 TB/s on H200. The number you measure with <code>cudaMemcpy</code> or in a kernel is always lower &mdash; here's why.</p>
+    <p>The spec-sheet number is a peak: 1024 b &times; 9.2 Gb/s/pin / 8 = ~1.18 TB/s/stack, &times;6 stacks would be ~7 TB/s; H200 actually runs its stacks at ~6.25 Gb/s/pin for 4.8 TB/s. The number you measure with <code>cudaMemcpy</code> or in a kernel is always lower &mdash; here's why.</p>
 
     <h3>Bandwidth tax breakdown</h3>
     <div class="tier-visual">
