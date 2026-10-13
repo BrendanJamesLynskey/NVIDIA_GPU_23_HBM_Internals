@@ -5,3 +5,5 @@ A deep dive into HBM2e/3/3e/4 internals — the eight-die vertical stack, TSVs, 
 **Live site:** https://brendanjameslynskey.github.io/NVIDIA_GPU_23_HBM_Internals/
 
 Part of the [NVIDIA GPU Architectures series](https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures).
+
+**Animated companion:** [AI Racks Explained](https://ai-racks-explained.vercel.app/) — [chapter 2, The package](https://ai-racks-explained.vercel.app/learn/02-the-package).

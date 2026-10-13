@@ -983,6 +983,11 @@
     </ul>
 
     <p>Notice the <em>asymmetry</em>: the buffer die does <em>real work</em>; the DRAM dies above it are mostly passive arrays with their TSVs ganged together. Every channel's command stream lands on the buffer die, gets decoded, then is fan-out broadcast up the TSVs to the right rank/die.</p>
+
+    <div class="callout">
+        <div class="callout-label">Animated companion</div>
+        <p>A model's weights filling a GPU's HBM stack by stack, and how many GPUs it needs: AI Racks Explained, <a href="https://ai-racks-explained.vercel.app/learn/02-the-package" style="color: var(--accent);">chapter 2, the package</a>.</p>
+    </div>
 </section>
 
 <section class="slide" id="slide-03">
@@ -1160,7 +1165,7 @@
                 <tr><td>H100 SXM5</td><td>HBM3</td><td>5</td><td>80 GB</td><td>3.35 TB/s</td></tr>
                 <tr><td>H200 SXM5</td><td>HBM3e</td><td>6</td><td>141 GB</td><td>4.8 TB/s</td></tr>
                 <tr><td>B100 / B200</td><td>HBM3e</td><td>8</td><td>192 GB</td><td>~8 TB/s</td></tr>
-                <tr><td>GB200 (per GPU)</td><td>HBM3e</td><td>8</td><td>192 GB</td><td>~8 TB/s</td></tr>
+                <tr><td>GB200 (per GPU)</td><td>HBM3e</td><td>8</td><td>186 GB</td><td>~8 TB/s</td></tr>
             </tbody>
         </table>
     </div>
@@ -1674,6 +1679,11 @@ memory.total [MiB]
         <li><strong>DCGM (<code>dcgm-exporter</code>)</strong> &mdash; production telemetry. <code>DCGM_FI_PROF_DRAM_ACTIVE</code> is the percent of cycles DRAM was busy doing real work. &gt;75% is good for serving; under 30% means you're compute-bound or your kernels are bad.</li>
         <li><strong>Bandwidth microbenchmark</strong> &mdash; <code>babelStream</code> or NVIDIA's <code>nvbandwidth</code> for sanity-checking peak achievable bandwidth on your specific board.</li>
     </ul>
+
+    <div class="callout">
+        <div class="callout-label">Animated companion</div>
+        <p>The time to read all of a GPU's HBM once, and the batch-1 decode floor it sets: AI Racks Explained, <a href="https://ai-racks-explained.vercel.app/learn/02-the-package" style="color: var(--accent);">chapter 2, the package</a>.</p>
+    </div>
 </section>
 
 <section class="slide" id="slide-11">
@@ -1837,6 +1847,7 @@ memory.total [MiB]
 <footer class="footer">
     <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">NVIDIA GPU Architectures Series</a></p>
     <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">Back to Series Index</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;">Animated companion site: <a href="https://ai-racks-explained.vercel.app/">AI Racks Explained</a> &mdash; the machines underneath, chip to rack, each chapter around a model-driven animation with every figure sourced.</p>
 </footer>
 
 <script>
